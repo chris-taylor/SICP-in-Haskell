@@ -28,3 +28,40 @@ pascal n k
     | otherwise = pascal (n-1) (k-1) + pascal (n-1) k
 
 -- 1.13 n/a
+
+-- 1.14 n/a
+
+-- 1.15 n/a
+
+-- 1.16
+square :: Num a => a -> a
+square x = x * x
+
+fastExpt :: (Num a, Integral b) => a -> b -> a
+fastExpt b n = iter b n 1
+    where iter b n res
+            | n == 0 = res
+            | even n = iter (square b) (n `div` 2) res
+            | True   = iter b (n - 1) (b * res)
+
+-- 1.17
+double :: Num a => a -> a
+double x = 2 * x
+
+halve :: Integral a => a -> a
+halve x = x `div` 2
+
+mult :: Integral a => a -> a -> a
+mult a b
+    | b == 0 = 0
+    | b == 1 = a
+    | even b = double (a `mult` halve b)
+    | True   = a + (a `mult` (b - 1))
+
+-- 1.18
+multIter :: Integral a => a -> a -> a
+multIter a b = iter a b 0
+    where iter a b res
+            | b == 0 = res
+            | even b = iter (double a) (halve b) res
+            | True   = iter a (b - 1) (res + a)
