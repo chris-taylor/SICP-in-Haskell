@@ -1,3 +1,6 @@
+import System.Random (Random, randomRIO)
+import System.CPUTime (getCPUTime)
+
 -- 1.9
 add :: (Enum a, Num a) => a -> a -> a
 add 0 b = b
@@ -45,26 +48,23 @@ fastExpt b n = iter b n 1
             | True   = iter b (n - 1) (b * res)
 
 -- 1.17
-double :: Num a => a -> a
-double x = 2 * x
-
-halve :: Integral a => a -> a
-halve x = x `div` 2
-
 mult :: Integral a => a -> a -> a
-mult a b
-    | b == 0 = 0
-    | b == 1 = a
-    | even b = double (a `mult` halve b)
-    | True   = a + (a `mult` (b - 1))
+mult a b | b < 0 = -m a (-b)
+         | True  =  m a b
+         where m a b | b == 0 = 0
+                     | even b = double (a `mult` halve b)
+                     | True   = a + (a `mult` (b - 1))
+               double x = 2 * x
+               halve x  = x `div` 2
 
 -- 1.18
 multIter :: Integral a => a -> a -> a
-multIter a b = iter a b 0
-    where iter a b res
-            | b == 0 = res
-            | even b = iter (double a) (halve b) res
-            | True   = iter a (b - 1) (res + a)
+multIter a b | b < 0 = -mi a (-b) 0
+             | True  =  mi a b 0
+             where mi a b res
+                    | b == 0 = res
+                    | even b = mi (2 * a) (b `div` 2) res
+                    | True   = mi a (b - 1) (res + a)
 
 -- 1.19
 fib :: Integral a => a -> a
@@ -83,3 +83,57 @@ fib n = fibIter 1 0 0 1 n
                                  q
                                  (cnt - 1)
 
+-- 1.20 n/a
+
+-- 1.21 n/a
+
+-- 1.22
+timedPrimeTest n = do
+    putStr $ show n
+    startTime <- getCPUTime
+    startPrimeTest n startTime
+
+startPrimeTest n startTime = if isPrime n
+    then do
+        endTime <- getCPUTime
+        let elapsedTime = (fromIntegral $ endTime - startTime) / 1e12
+        reportPrime elapsedTime
+    else putStrLn ""
+
+reportPrime elapsedTime = do
+    putStrLn $ " *** " ++ show elapsedTime ++ " seconds."
+
+smallestDivisor :: Integral a => a -> a
+smallestDivisor n = findDivisor n 2
+    where
+        findDivisor n test
+            | test ^ 2 > n     = n
+            | test `divides` n = test
+            | otherwise        = findDivisor n (test + 1)
+        divides a b = b `rem` a == 0
+
+isPrime :: Integral a => a -> Bool
+isPrime 1 = False
+isPrime n = smallestDivisor n == n
+
+expMod :: Integral a => a -> a -> a -> a
+expMod b n m
+    | n == 0 = 1
+    | even n = (square $ expMod b (n `div` 2) m) `mod` m
+    | True   = (b * expMod b (n-1) m) `mod` m
+
+fermatTest :: (Random t, Integral t) => t -> IO Bool
+fermatTest n = let try a = a == expMod a n n
+    in do
+        r <- randomRIO (1, n)
+        return $ try r
+
+fastPrime :: (Random t, Integral t) => t -> t -> IO Bool
+fastPrime n times = do
+    if times == 0
+        then return True
+        else do
+            t <- fermatTest n
+            if t
+                then fastPrime n (times - 1)
+                else return False
