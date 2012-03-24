@@ -65,3 +65,21 @@ multIter a b = iter a b 0
             | b == 0 = res
             | even b = iter (double a) (halve b) res
             | True   = iter a (b - 1) (res + a)
+
+-- 1.19
+fib :: Integral a => a -> a
+fib n = fibIter 1 0 0 1 n
+    where
+        fibIter a b p q cnt
+            | cnt == 0 = b
+            | even cnt = fibIter a
+                                 b
+                                 (p * p + q * q)
+                                 (q * q + 2 * p * q)
+                                 (cnt `div` 2)
+            | True     = fibIter (b * q + a * q + q * p)
+                                 (b * p + a * q)
+                                 p
+                                 q
+                                 (cnt - 1)
+
