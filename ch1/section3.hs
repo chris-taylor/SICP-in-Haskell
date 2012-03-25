@@ -30,9 +30,22 @@ prodRec term a next b = if a > b
     then 1
     else term a * prodRec term (next a) next b
 
-prodIter :: (Ord a, Num a) => (a -> b) -> a -> (a -> a) -> a -> b
-prodIter term a next b = iter a result
+factorial :: (Ord a, Num a) => a -> a
+factorial n = prodRec id 1 (+1) n
+
+piApprox :: Fractional a => Int -> a
+piApprox n = 4 * prodRec f 1 (+1) n
+    where
+        f n     = fromIntegral (numer n) / fromIntegral (denom n)
+        numer n | even n = n + 2
+                | odd  n = n + 1
+        denom n | even n = n + 1
+                | odd  n = n + 2
+
+prodIter :: (Ord a, Num b) => (a -> b) -> a -> (a -> a) -> a -> b
+prodIter term a next b = iter a 1
     where
         iter a result = if a > b
             then result
-            else iter (next a) (result * term result)
+            else iter (next a) (result * term a)
+
