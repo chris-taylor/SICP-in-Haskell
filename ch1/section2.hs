@@ -152,22 +152,61 @@ findPrimesFast = mapM_ (printThree isPrime) inputs
 expMod :: Integral a => a -> a -> a -> a
 expMod b n m
     | n == 0 = 1
-    | even n = (square $ expMod b (n `div` 2) m) `mod` m
+    | even n = (expMod b (n `div` 2) m) ^ 2 `mod` m
     | True   = (b * expMod b (n-1) m) `mod` m
 
-fermatTest :: (Random t, Integral t) => t -> IO Bool
-fermatTest n = do
-        rand <- randomRIO (1, n - 1)
-        return (tryIt rand)
-    where
-        tryIt a = a == expMod a n n
+fermatTest :: Integral a => a -> a -> Bool
+fermatTest n a = expMod a n n == a
 
-fastPrime :: (Random t, Integral t) => Int -> t -> IO Bool
-fastPrime times n = do
-    if times == 0
-        then return True
-        else do
-            t <- fermatTest n
-            if t
-                then fastPrime (times - 1) n
-                else return False
+fastPrime :: Integral a => [a] -> a -> Bool
+fastPrime xs n = and $ map (fermatTest n) xs
+
+getFermatIsPrime nTests = do
+    randomNumbers <- sequence $ replicate nTests $ randomRIO (0 :: Integer, 1000)
+    return (fastPrime randomNumbers)
+
+findPrimesFermat :: IO ()
+findPrimesFermat = do
+    isPrime <- getFermatIsPrime 100
+    mapM_ (printThree isPrime) inputs
+
+{-  I'm not very happy with the solution to this. First, the type of
+    getFermatIsPrime seems to be unnecessarily restricted. Second, it
+    generates random numbers from 1..1000, meaning that it fails for
+    inputs under 1000.
+
+    I feel like there should be a way to generate
+    random numbers in the range 1..n and use those for testing, but
+    in findPrimesFermat I need a type of IO (t -> Bool) to bind to isPrime,
+    and if I generate the random numbers *after* taking in the input n, then
+    the type will be IO (t -> IO Bool) because some IO has to be done after
+    we look at the input.
+
+    Perhaps the way around it is to use randomR
+    instead of randomRIO, which requires me to deal with the generator
+    explicitly, but has the advantage that it avoids wrapping everything
+    up in an IO monad.
+
+    Below are my earlier attempts; I don't think they will work though.
+
+    fermatTest :: (Random t, Integral t) => t -> IO Bool
+    fermatTest n = do
+            rand <- randomRIO (1, n - 1)
+            return (tryIt rand)
+        where
+            tryIt a = expMod a n n == a
+
+    fastPrime :: (Random t, Integral t) => Int -> t -> IO Bool
+    fastPrime times n = do
+        if times == 0
+            then return True
+            else do
+                t <- fermatTest n
+                if t
+                    then fastPrime (times - 1) n
+                    else return False
+
+    findPrimesFermat = do
+        isPrime <- fastPrime 100
+        mapM_ (printThree isPrime) inputs
+-}
