@@ -210,3 +210,41 @@ findPrimesFermat = do
         isPrime <- fastPrime 100
         mapM_ (printThree isPrime) inputs
 -}
+
+-- 1.25 n/a
+-- 1.26 n/a
+
+-- 1.27
+passFermatTest :: Integral a => a -> Bool
+passFermatTest n = and $ map (fermatTest n) [0..(n-1)]
+
+isCarmichael :: Integral a => a -> Bool
+isCarmichael n = passFermatTest n && not (isPrime n)
+
+-- 1.28
+expMod' :: Integral a => a -> a -> a -> a
+expMod' b n m
+    | n == 0 = 1
+    | even n = let s = expMod b (n `div` 2) m
+                   t = s ^ 2 `mod` m
+                in if s /= 1 && s /= n - 1 && t == 1
+                    then (-1)
+                    else t
+    | True   = (b * expMod b (n-1) m) `mod` m
+
+millerRabinTest :: Integral a => a -> a -> Bool
+millerRabinTest n a = b == a && b /= (-1)
+    where b = expMod' a n n
+
+fastMillerRabinPrime :: Integral a => [a] -> a -> Bool
+fastMillerRabinPrime xs n = and $ map (millerRabinTest n) xs
+
+getMillerRabinIsPrime nTests = do
+    randomNumbers <- sequence $ replicate nTests $ randomRIO (0 :: Integer, 1000)
+    return (fastMillerRabinPrime randomNumbers)
+
+findPrimesMillerRabin :: IO ()
+findPrimesMillerRabin = do
+    isPrime <- getMillerRabinIsPrime 100
+    mapM_ (printThree isPrime) inputs
+
