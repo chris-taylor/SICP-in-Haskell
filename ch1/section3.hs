@@ -23,3 +23,9 @@ sumIter term a next b = iter a 0
         iter a result = if a > b 
             then result
             else iter (next a) (result + term a)
+
+-- 1.31
+prodRec :: (Ord a, Num b) => (a -> b) -> a -> (a -> a) -> a -> b
+prodRec term a next b = if a > b
+    then 1
+    else term a * prodRec term (next a) next b
