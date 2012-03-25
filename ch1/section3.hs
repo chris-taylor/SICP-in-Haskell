@@ -29,3 +29,10 @@ prodRec :: (Ord a, Num b) => (a -> b) -> a -> (a -> a) -> a -> b
 prodRec term a next b = if a > b
     then 1
     else term a * prodRec term (next a) next b
+
+prodIter :: (Ord a, Num a) => (a -> b) -> a -> (a -> a) -> a -> b
+prodIter term a next b = iter a result
+    where
+        iter a result = if a > b
+            then result
+            else iter (next a) (result * term result)
