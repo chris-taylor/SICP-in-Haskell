@@ -1,5 +1,6 @@
 import System.Random (Random, randomRIO)
 import System.CPUTime (getCPUTime)
+import Control.Monad
 
 -- 1.9
 add :: (Enum a, Num a) => a -> a -> a
@@ -88,21 +89,6 @@ fib n = fibIter 1 0 0 1 n
 -- 1.21 n/a
 
 -- 1.22
-timedPrimeTest n = do
-    putStr $ show n
-    startTime <- getCPUTime
-    startPrimeTest n startTime
-
-startPrimeTest n startTime = if isPrime n
-    then do
-        endTime <- getCPUTime
-        let elapsedTime = (fromIntegral $ endTime - startTime) / 1e12
-        reportPrime elapsedTime
-    else putStrLn ""
-
-reportPrime elapsedTime = do
-    putStrLn $ " *** " ++ show elapsedTime ++ " seconds."
-
 smallestDivisor :: Integral a => a -> a
 smallestDivisor n = findDivisor n 2
     where
@@ -111,11 +97,58 @@ smallestDivisor n = findDivisor n 2
             | test `divides` n = test
             | otherwise        = findDivisor n (test + 1)
         divides a b = b `rem` a == 0
+takeThree lst = liftM (take 3) lst
 
 isPrime :: Integral a => a -> Bool
 isPrime 1 = False
 isPrime n = smallestDivisor n == n
 
+timedPrimeTest :: Integral a => (a -> Bool) -> a -> IO ()
+timedPrimeTest isPrime n = do
+    putStr $ show n
+    startTime <- getCPUTime
+    startPrimeTest n startTime
+    putStrLn ""
+    where
+        startPrimeTest n startTime = do
+            if isPrime n
+                then do
+                    endTime <- getCPUTime
+                    reportPrime (endTime - startTime)
+                else return ()
+        reportPrime elapsedTime = 
+            putStr $ " *** " ++ show (fromIntegral elapsedTime / 1e12) ++ " seconds."
+
+searchForPrimes :: Integral a => [a] -> [a]
+searchForPrimes xs = filter isPrime xs
+
+printThree :: Integral a => (a -> Bool) -> [a] -> IO ()
+printThree isPrime xs = mapM_ (timedPrimeTest isPrime) $ take 3 $ searchForPrimes xs
+
+inputs :: Integral a => [[a]]
+inputs = [[10^3..],[10^4..],[10^5..],[10^10..],[10^11..],[10^12..]]
+
+findPrimes :: IO ()
+findPrimes = mapM_ (printThree isPrime) inputs
+
+--isPrimeIO :: Integral a => a -> IO Bool
+--isPrimeIO n = return (isPrime n)
+
+-- 1.23
+findPrimesFast :: IO ()
+findPrimesFast = mapM_ (printThree isPrime) inputs
+    where
+        isPrime 1 = False
+        isPrime n = smallestDivisor n == n
+        smallestDivisor n = findDivisor n 2
+        findDivisor n test | test ^ 2 > n     = n
+                           | test `divides` n = test
+                           | otherwise        = findDivisor n (next test)
+        next 2 = 3
+        next n = n + 2
+        a `divides` b = b `rem` a == 0
+
+-- 1.24
 expMod :: Integral a => a -> a -> a -> a
 expMod b n m
     | n == 0 = 1
@@ -123,17 +156,18 @@ expMod b n m
     | True   = (b * expMod b (n-1) m) `mod` m
 
 fermatTest :: (Random t, Integral t) => t -> IO Bool
-fermatTest n = let try a = a == expMod a n n
-    in do
-        r <- randomRIO (1, n)
-        return $ try r
+fermatTest n = do
+        rand <- randomRIO (1, n - 1)
+        return (tryIt rand)
+    where
+        tryIt a = a == expMod a n n
 
-fastPrime :: (Random t, Integral t) => t -> t -> IO Bool
-fastPrime n times = do
+fastPrime :: (Random t, Integral t) => Int -> t -> IO Bool
+fastPrime times n = do
     if times == 0
         then return True
         else do
             t <- fermatTest n
             if t
-                then fastPrime n (times - 1)
+                then fastPrime (times - 1) n
                 else return False
