@@ -51,9 +51,9 @@ prodIter term a next b = iter a 1
 
 -- 1.32
 accumulate :: Ord a => (b -> c -> c) -> c -> (a -> b) -> a -> (a -> a) -> a -> c
-accumulate combiner nullValue term a next b = if a > b
+accumulate op nullValue term a next b = if a > b
     then nullValue
-    else combiner (term a) (accumulate combiner nullValue term (next a) next b)
+    else (term a) `op` (accumulate op nullValue term (next a) next b)
 
 sumAccum :: (Ord a, Num b) => (a -> b) -> a -> (a -> a) -> a -> b
 sumAccum term a next b = 
@@ -70,5 +70,34 @@ accumIter combiner nullValue term a next b = iter a nullValue
             then result
             else iter (next a) (combiner (term a) result)
 
+-- 1.33
+filteredAccumulate :: Ord a => (b -> c -> c) -> c -> (a -> Bool) -> (a -> b) -> a -> (a -> a) -> a -> c
+filteredAccumulate op nullValue cond term a next b = if a > b
+    then nullValue
+    else if cond a
+        then (term a) `op` rest
+        else rest
+        where
+            rest = filteredAccumulate op nullValue cond term (next a) next b
 
+-- a. (uses isPrime from Section 2)
+isPrime :: Integral a => a -> Bool
+isPrime 1 = False
+isPrime n = smallestDivisor n == n
+    where
+        smallestDivisor n = findDivisor n 2
+        findDivisor n test | test ^ 2 > n     = n
+                           | test `divides` n = test
+                           | otherwise        = findDivisor n (test + 1)
+        divides a b = b `rem` a == 0
+
+sumOfPrimeSquares :: Integral a => a -> a -> a
+sumOfPrimeSquares a b = filteredAccumulate (+) 0 isPrime (^2) a succ b
+
+-- b. 
+productOfCoprimes :: Integral a => a -> a
+productOfCoprimes n = filteredAccumulate (*) 1 coPrime id 1 succ n
+    where coPrime m = gcd m n == 1
+
+-- 1.34 n/a
 
