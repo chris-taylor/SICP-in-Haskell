@@ -97,7 +97,6 @@ smallestDivisor n = findDivisor n 2
             | test `divides` n = test
             | otherwise        = findDivisor n (test + 1)
         divides a b = b `rem` a == 0
-takeThree lst = liftM (take 3) lst
 
 isPrime :: Integral a => a -> Bool
 isPrime 1 = False
