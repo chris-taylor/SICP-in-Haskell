@@ -49,3 +49,26 @@ prodIter term a next b = iter a 1
             then result
             else iter (next a) (result * term a)
 
+-- 1.32
+accumulate :: Ord a => (b -> c -> c) -> c -> (a -> b) -> a -> (a -> a) -> a -> c
+accumulate combiner nullValue term a next b = if a > b
+    then nullValue
+    else combiner (term a) (accumulate combiner nullValue term (next a) next b)
+
+sumAccum :: (Ord a, Num b) => (a -> b) -> a -> (a -> a) -> a -> b
+sumAccum term a next b = 
+    accumulate (+) 0 term a next b
+
+prodAccum :: (Ord a, Num b) => (a -> b) -> a -> (a -> a) -> a -> b
+prodAccum term a next b = 
+    accumulate (*) 1 term a next b
+
+accumIter :: Ord a => (b -> c -> c) -> c -> (a -> b) -> a -> (a -> a) -> a -> c
+accumIter combiner nullValue term a next b = iter a nullValue
+    where
+        iter a result = if a > b
+            then result
+            else iter (next a) (combiner (term a) result)
+
+
+
