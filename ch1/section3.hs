@@ -1,3 +1,5 @@
+import Prelude hiding (sqrt)
+
 -- 1.29
 sumRec :: (Ord a, Num b) => (a -> b) -> a -> (a -> a) -> a -> b
 sumRec term a next b = if a > b
@@ -100,4 +102,62 @@ productOfCoprimes n = filteredAccumulate (*) 1 coPrime id 1 succ n
     where coPrime m = gcd m n == 1
 
 -- 1.34 n/a
+search :: (Ord a, Fractional a, Ord b, Num b) => (a -> b) -> a -> a -> a
+search f neg pos = let mid = (neg + pos) / 2 in
+    if closeEnough neg pos
+        then mid
+        else let testValue = f mid in
+            case compare testValue 0 of
+                GT -> search f neg mid
+                LT -> search f mid pos
+                EQ -> mid
+    where
+        closeEnough x y = abs (x - y) < 0.001
+
+halfIntervalMethod :: (Ord a, Ord b, Fractional a, Num b) => (a -> b) -> a -> a -> a
+halfIntervalMethod f a b =
+    let aValue = f a
+        bValue = f b
+     in doSearch aValue bValue
+    where
+        doSearch fa fb
+            | fa < 0 && fb > 0 = search f a b
+            | fa > 0 && fb < 0 = search f b a
+            | otherwise = error "Values are not of opposite sign"
+
+sqrt :: (Ord a, Fractional a) => a -> a
+sqrt x = fixedPoint (\y -> (y + x/y) / 2) 1.0
+
+-- 1.35
+fixedPoint :: (Ord a, Fractional a) => (a -> a) -> a -> a
+fixedPoint f guess = try guess
+    where
+        try guess = let next = f guess in
+            if closeEnough guess next
+                then next
+                else try next
+        closeEnough v1 v2 = abs (v1 - v2) < tolerance
+        tolerance = 0.00001
+
+goldenRatio :: (Ord a, Floating a) => a
+goldenRatio = fixedPoint (\x -> 1 + 1/x) 1.0
+
+-- 1.36
+fixedPointVerbose :: (Ord a, Fractional a) => (a -> a) -> a -> IO a
+fixedPointVerbose f guess = try guess 1
+    where
+        try guess n = do
+            putStrLn $ "Guess " ++ show n ++ ": " ++ show guess
+            let next = f guess
+            if closeEnough guess next
+                then return next
+                else try next (n + 1)
+        closeEnough v1 v2 = abs (v1 - v2) < tolerance
+        tolerance = 0.00001
+
+xToXIs1000 :: (Ord a, Floating a) => IO a
+xToXIs1000 = fixedPointVerbose (\x -> log 1000 / log x) 2.0
+
+xToXIs1000AvgDamp :: (Ord a, Floating a) => IO a
+xToXIs1000AvgDamp = fixedPointVerbose (\x -> (x + log 1000 / log x) / 2) 2.0
 
