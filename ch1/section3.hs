@@ -161,3 +161,23 @@ xToXIs1000 = fixedPointVerbose (\x -> log 1000 / log x) 2.0
 xToXIs1000AvgDamp :: (Ord a, Floating a) => IO a
 xToXIs1000AvgDamp = fixedPointVerbose (\x -> (x + log 1000 / log x) / 2) 2.0
 
+-- 1.37
+-- a.
+contFrac :: (Integral i, Fractional a) => (i -> a) -> (i -> a) -> i -> a
+contFrac n d k = helper n d 1
+    where
+        helper n d i = if i == k
+            then n i / d i
+            else n i / (d i + helper n d (i+1))
+
+goldenRatioContFrac :: (Integral i, Fractional a) => i -> a
+goldenRatioContFrac k = 1 / contFrac (\i -> 1.0) (\i -> 1.0) k
+
+-- b.
+contFracIter :: (Integral i, Fractional a) => (i -> a) -> (i -> a) -> i -> a
+contFracIter n d k = iter k 0
+    where
+        iter i result = if i == 0
+            then result
+            else iter (i-1) (n i / (d i + result))
+
