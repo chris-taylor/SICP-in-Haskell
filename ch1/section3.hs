@@ -103,33 +103,6 @@ productOfCoprimes n = filteredAccumulate (*) 1 coPrime id 1 succ n
 
 -- 1.34 n/a
 
--- Extra stuff (delete eventually?)
-search :: (Ord a, Fractional a, Ord b, Num b) => (a -> b) -> a -> a -> a
-search f neg pos = let mid = (neg + pos) / 2 in
-    if closeEnough neg pos
-        then mid
-        else let testValue = f mid in
-            case compare testValue 0 of
-                GT -> search f neg mid
-                LT -> search f mid pos
-                EQ -> mid
-    where
-        closeEnough x y = abs (x - y) < 0.001
-
-halfIntervalMethod :: (Ord a, Ord b, Fractional a, Num b) => (a -> b) -> a -> a -> a
-halfIntervalMethod f a b =
-    let aValue = f a
-        bValue = f b
-     in doSearch aValue bValue
-    where
-        doSearch fa fb
-            | fa < 0 && fb > 0 = search f a b
-            | fa > 0 && fb < 0 = search f b a
-            | otherwise = error "Values are not of opposite sign"
-
-sqrt :: (Ord a, Fractional a) => a -> a
-sqrt x = fixedPoint (\y -> (y + x/y) / 2) 1.0
-
 -- 1.35
 fixedPoint :: (Ord a, Fractional a) => (a -> a) -> a -> a
 fixedPoint f guess = try guess
@@ -198,35 +171,11 @@ tanCF x k = contFrac n d k
           n i = -(x^2)
           d i  = 2 * fromIntegral i - 1
 
-
--- Extra stuff (delete eventually)
-averageDamp :: Fractional a => (a -> a) -> (a -> a)
-averageDamp f = \x -> (x + f x) / 2
-
-sqrtAvgDamp :: (Ord a, Floating a) => a -> a
-sqrtAvgDamp x = fixedPoint (averageDamp (\y -> x / y)) 1.0
-
-cbrtAvgDamp :: (Ord a, Floating a) => a -> a
-cbrtAvgDamp x = fixedPoint (averageDamp (\y -> x / y^2)) 1.0
-
-deriv :: Fractional a => (a -> a) -> (a -> a)
-deriv g = \x -> (g (x+dx) - g x) / dx
-    where dx = 0.00001
-
-sqrtNewton :: (Ord a, Fractional a) => a -> a
-sqrtNewton x = newtonsMethod (\y -> y^2 - x) 1.0
-
-fixedPointOfTransform :: (Ord a, Fractional a) => (a -> a) -> ((a -> a) -> (a -> a)) -> a -> a
-fixedPointOfTransform g transform guess = 
-    fixedPoint (transform g) guess
-
-sqrtAvgDampFP x = fixedPointOfTransform (\y -> x/y) averageDamp 1.0
-
-sqrtNewtonFP x = fixedPointOfTransform (\y -> y^2 - x) newtonTransform 1.0
-
 -- 1.40
 newtonTransform :: Fractional a => (a -> a) -> (a -> a)
 newtonTransform g = \x -> x - g x / deriv g x
+    where deriv g x = (g (x+dx) - g x) / dx
+          dx = 0.00001
 
 newtonsMethod :: (Ord a, Fractional a) => (a -> a) -> a -> a
 newtonsMethod g guess = fixedPoint (newtonTransform g) guess
@@ -263,4 +212,37 @@ smooth dx f x = (f (x+dx) + f x + f (x-dx)) / 3
 repeatedSmooth :: (Integral i, Fractional a) => i -> a -> (a -> a) -> (a -> a)
 repeatedSmooth n dx = repeated (smooth dx) n
 
+-- 1.45
+averageDamp :: Fractional a => (a -> a) -> (a -> a)
+averageDamp f = \x -> (x + f x) / 2
 
+logi :: Integral a => a -> a
+logi n = iter n 0
+    where iter n result = if n == 1
+            then result
+            else iter (n `div` 2) (result + 1)
+
+nthRoot :: (Integral a, Ord b, Fractional b) => a -> b -> b
+nthRoot n x = fixedPoint (repeated averageDamp k f) 1.0
+    where k = logi n
+          f = \y -> x / y ^ (n - 1)
+
+-- 1.46
+iterativeImprove :: (a -> Bool) -> (a -> a) -> a -> a
+iterativeImprove goodEnough improve guess = try guess
+    where
+        try guess = if goodEnough guess
+            then guess
+            else try (improve guess)
+
+sqrtII :: (Ord a, Fractional a) => a -> a
+sqrtII x = iterativeImprove goodEnough g 1.0
+    where
+        goodEnough guess = abs (guess^2 - x) < 0.0001
+        g y = (y + x/y) / 2
+
+fixedPointII :: (Ord a, Fractional a) => (a -> a) -> a -> a
+fixedPointII f guess = iterativeImprove goodEnough f guess
+    where
+        goodEnough guess = abs (guess - f guess) < tolerance
+        tolerance = 0.00001
