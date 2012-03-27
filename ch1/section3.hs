@@ -181,3 +181,24 @@ contFracIter n d k = iter k 0
             then result
             else iter (i-1) (n i / (d i + result))
 
+-- 1.38
+e :: (Integral i, Fractional a) => i -> a
+e k = 2 + contFrac n d k
+    where n i = 1.0
+          d i = if i `mod` 3 == 2
+            then 2 * (fromIntegral i + 1) / 3
+            else 1.0
+
+-- 1.39
+tanCF :: (Integral i, Fractional a) => a -> i -> a
+tanCF x k = contFrac n d k
+    where n 1 = x
+          n i = -(x^2)
+          d i  = 2 * fromIntegral i - 1
+
+
+
+
+
+
+
