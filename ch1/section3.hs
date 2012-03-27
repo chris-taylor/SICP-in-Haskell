@@ -102,6 +102,8 @@ productOfCoprimes n = filteredAccumulate (*) 1 coPrime id 1 succ n
     where coPrime m = gcd m n == 1
 
 -- 1.34 n/a
+
+-- Extra stuff (delete eventually?)
 search :: (Ord a, Fractional a, Ord b, Num b) => (a -> b) -> a -> a -> a
 search f neg pos = let mid = (neg + pos) / 2 in
     if closeEnough neg pos
@@ -197,8 +199,68 @@ tanCF x k = contFrac n d k
           d i  = 2 * fromIntegral i - 1
 
 
+-- Extra stuff (delete eventually)
+averageDamp :: Fractional a => (a -> a) -> (a -> a)
+averageDamp f = \x -> (x + f x) / 2
 
+sqrtAvgDamp :: (Ord a, Floating a) => a -> a
+sqrtAvgDamp x = fixedPoint (averageDamp (\y -> x / y)) 1.0
 
+cbrtAvgDamp :: (Ord a, Floating a) => a -> a
+cbrtAvgDamp x = fixedPoint (averageDamp (\y -> x / y^2)) 1.0
 
+deriv :: Fractional a => (a -> a) -> (a -> a)
+deriv g = \x -> (g (x+dx) - g x) / dx
+    where dx = 0.00001
+
+sqrtNewton :: (Ord a, Fractional a) => a -> a
+sqrtNewton x = newtonsMethod (\y -> y^2 - x) 1.0
+
+fixedPointOfTransform :: (Ord a, Fractional a) => (a -> a) -> ((a -> a) -> (a -> a)) -> a -> a
+fixedPointOfTransform g transform guess = 
+    fixedPoint (transform g) guess
+
+sqrtAvgDampFP x = fixedPointOfTransform (\y -> x/y) averageDamp 1.0
+
+sqrtNewtonFP x = fixedPointOfTransform (\y -> y^2 - x) newtonTransform 1.0
+
+-- 1.40
+newtonTransform :: Fractional a => (a -> a) -> (a -> a)
+newtonTransform g = \x -> x - g x / deriv g x
+
+newtonsMethod :: (Ord a, Fractional a) => (a -> a) -> a -> a
+newtonsMethod g guess = fixedPoint (newtonTransform g) guess
+
+cubic :: Num a => a -> a -> a -> a -> a
+cubic a b c x = x^3 + a * x^2 + b * x + c
+
+-- 1.41
+double :: (a -> a) -> (a -> a)
+double f x = f (f x)
+
+{-  Since composition is built in to Haskell, it's even easier to write
+        double f = f . f
+    but that feels like cheating. -}
+
+-- 1.42
+compose :: (b -> c) -> (a -> b) -> (a -> c)
+compose f g x = f (g x)
+
+{-  Similarly to above, I could define
+        compose = (.)
+    but again that feels too easy. -}
+
+-- 1.43
+repeated :: Integral i => (a -> a) -> i -> (a -> a)
+repeated f n = if n == 0
+    then id
+    else compose f $ repeated f (n-1)
+
+-- 1.44
+smooth :: Fractional a => a -> (a -> a) -> (a -> a)
+smooth dx f x = (f (x+dx) + f x + f (x-dx)) / 3
+
+repeatedSmooth :: (Integral i, Fractional a) => i -> a -> (a -> a) -> (a -> a)
+repeatedSmooth n dx = repeated (smooth dx) n
 
 
