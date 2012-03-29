@@ -1,11 +1,11 @@
 -- Cons and associated utility methods
 
-data Nil = Nil deriving Show
+--data Nil = Nil deriving Show
 
-data Cons a b = Cons { car :: a, cdr :: b }
+--data Cons a b = Cons { car :: a, cdr :: b }
 
-instance (Show a, Show b) => Show (Cons a b) where
-    show (Cons x y) = "(" ++ show x ++ " " ++ show y ++ ")"
+--instance (Show a, Show b) => Show (Cons a b) where
+--    show (Cons x y) = "(" ++ show x ++ " " ++ show y ++ ")"
 
 -- 2.1
 data Rat a = Rat { numer :: a, denom :: a } deriving (Eq)
@@ -68,3 +68,14 @@ instance Rectangle Rect' where
     height (Rect' _ h _) = h
     width  (Rect' _ _ w) = w
 
+-- 2.4
+cons :: a -> b -> ((a -> b -> c) -> c)
+cons x y = \m -> m x y
+
+car' :: ((a -> b -> a) -> c) -> c
+car' z = z (\p q -> p)
+
+cdr' :: ((a -> b -> b) -> c) -> c
+cdr' z = z (\p q -> q)
+
+-- 2.5
