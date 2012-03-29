@@ -69,8 +69,8 @@ instance Rectangle Rect' where
     width  (Rect' _ _ w) = w
 
 -- 2.4
-cons :: a -> b -> ((a -> b -> c) -> c)
-cons x y = \m -> m x y
+cons' :: a -> b -> ((a -> b -> c) -> c)
+cons' x y = \m -> m x y
 
 car' :: ((a -> b -> a) -> c) -> c
 car' z = z (\p q -> p)
@@ -79,3 +79,19 @@ cdr' :: ((a -> b -> b) -> c) -> c
 cdr' z = z (\p q -> q)
 
 -- 2.5
+cons'':: Integral a => a -> a -> a
+cons'' a b = 2 ^ a * 3 ^ b
+
+car'' :: Integral a => a -> a
+car'' z = iter z 0
+    where iter z n | 2 `divides` z = iter (z `div` 2) (n + 1)
+                   | otherwise     = n
+
+cdr'' :: Integral a => a -> a
+cdr'' z = iter z 0
+    where iter z n | 3 `divides` z = iter (z `div` 2) (n + 1)
+                   | otherwise     = n
+
+
+divides :: Integral a => a -> a -> Bool
+divides a b = b `rem` a == 0
