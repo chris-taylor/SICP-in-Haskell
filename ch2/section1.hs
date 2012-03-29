@@ -95,3 +95,33 @@ cdr'' z = iter z 0
 
 divides :: Integral a => a -> a -> Bool
 divides a b = b `rem` a == 0
+
+-- 2.6
+zero :: (a -> a) -> (a -> a)
+zero = \f -> id
+
+add1 :: ((a -> a) -> (a -> a)) -> ((a -> a) -> (a -> a))
+add1 n = \f -> f . (n f)
+
+one :: (a -> a) -> (a -> a)
+one = \f -> f
+
+two :: (a -> a) -> (a -> a)
+two = \f -> f . f
+
+plus :: ((a -> a) -> (a -> a)) -> ((a -> a) -> (a -> a)) -> ((a -> a) -> (a -> a))
+plus m n = \f -> (m f) . (n f)
+
+-- Can check the above implementation of Church numerals using this function,
+-- which should evaluate to True.
+checkChurchEncoding :: Bool
+checkChurchEncoding = 
+    int (add1 zero) == int one &&
+    int (add1 one) == int two &&
+    int (add1 (add1 zero)) == int two &&
+    int (add1 (add1 one)) == int (add1 two)
+    where
+        int n = (n (+1)) 0
+
+
+
