@@ -43,10 +43,28 @@ midpoint :: Fractional a => Line a -> Point a
 midpoint (Line (Point x1 y1) (Point x2 y2)) = Point ((x1 + x2)/2) ((y1 + y2)/2)
 
 -- 2.3
-data Rectangle a = Rectangle {    bottomLeft :: Point a
-                                , height :: a
-                                , width :: a
-                                , angle :: a }
+class Rectangle a where
+    height :: a -> Double
+    width :: a -> Double
 
+    perimeter :: a -> Double
+    perimeter rect = 2 * (height rect + width rect)
 
+    area :: a -> Double
+    area rect = height rect * width rect
+
+data Rect = Rect { bottomLeft :: Point Double
+                   , topRight :: Point Double } deriving (Eq,Show)
+
+instance Rectangle Rect where
+    height (Rect (Point _ y1) (Point _ y2)) = y2 - y1
+    width  (Rect (Point x1 _) (Point x2 _)) = x2 - x1
+
+data Rect' = Rect' { bottomLeft' :: Point Double
+                   , height' :: Double
+                   , width' :: Double } deriving (Eq,Show)
+
+instance Rectangle Rect' where 
+    height (Rect' _ h _) = h
+    width  (Rect' _ _ w) = w
 
