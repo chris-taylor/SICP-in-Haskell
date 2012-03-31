@@ -1,11 +1,15 @@
--- Cons and associated utility methods
+{-# LANGUAGE RankNTypes #-}
 
---data Nil = Nil deriving Show
+-- Define a Pair class with associated methods cons, car, cdr
+class Pair p where
+    cons :: a -> b -> p a b
+    car :: p a b -> a
+    cdr :: p a b -> b
 
---data Cons a b = Cons { car :: a, cdr :: b }
-
---instance (Show a, Show b) => Show (Cons a b) where
---    show (Cons x y) = "(" ++ show x ++ " " ++ show y ++ ")"
+instance Pair (,) where
+    cons      = (,)
+    car (a,_) = a
+    cdr (_,b) = b
 
 -- 2.1
 data Rat a = Rat { numer :: a, denom :: a } deriving (Eq)
@@ -26,9 +30,10 @@ instance Integral a => Fractional (Rat a) where
     (Rat n1 d1) / (Rat n2 d2) = makeRat (n1 * d2) (n2 * d1)
     fromRational n = undefined
 
+makeRat :: Integral a => a -> a -> Rat a
 makeRat n d | d < 0  = Rat ((-n) `div` g) ((-d) `div` g)
             | d > 0  = Rat (n `div` g) (d `div` g)
-            | d == 0 = Rat 0 1
+            | d == 0 = error "Denominator cannot be zero!"
     where g = gcd n d
 
 -- 2.2
@@ -44,57 +49,51 @@ midpoint (Line (Point x1 y1) (Point x2 y2)) = Point ((x1 + x2)/2) ((y1 + y2)/2)
 
 -- 2.3
 class Rectangle a where
-    height :: a -> Double
-    width :: a -> Double
+    heightRect :: a -> Double
+    widthRect :: a -> Double
 
     perimeter :: a -> Double
-    perimeter rect = 2 * (height rect + width rect)
+    perimeter rect = 2 * (heightRect rect + widthRect rect)
 
     area :: a -> Double
-    area rect = height rect * width rect
+    area rect = heightRect rect * widthRect rect
 
 data Rect = Rect { bottomLeft :: Point Double
                    , topRight :: Point Double } deriving (Eq,Show)
 
 instance Rectangle Rect where
-    height (Rect (Point _ y1) (Point _ y2)) = y2 - y1
-    width  (Rect (Point x1 _) (Point x2 _)) = x2 - x1
+    heightRect (Rect (Point _ y1) (Point _ y2)) = y2 - y1
+    widthRect  (Rect (Point x1 _) (Point x2 _)) = x2 - x1
 
 data Rect' = Rect' { bottomLeft' :: Point Double
-                   , height' :: Double
-                   , width' :: Double } deriving (Eq,Show)
+                   , heightRect' :: Double
+                   , widthRect' :: Double } deriving (Eq,Show)
 
 instance Rectangle Rect' where 
-    height (Rect' _ h _) = h
-    width  (Rect' _ _ w) = w
+    heightRect (Rect' _ h _) = h
+    widthRect  (Rect' _ _ w) = w
 
 -- 2.4
-cons' :: a -> b -> ((a -> b -> c) -> c)
-cons' x y = \m -> m x y
+data ChurchPair a b = CP (forall c. (a -> b -> c) -> c)
 
-car' :: ((a -> b -> a) -> c) -> c
-car' z = z (\p q -> p)
-
-cdr' :: ((a -> b -> b) -> c) -> c
-cdr' z = z (\p q -> q)
+instance Pair ChurchPair where
+    cons x y = CP (\m -> m x y)
+    car (CP z) = z (\p q -> p)
+    cdr (CP z) = z (\p q -> q)
 
 -- 2.5
-cons'':: Integral a => a -> a -> a
-cons'' a b = 2 ^ a * 3 ^ b
+consi:: Integral a => a -> a -> a
+consi a b = 2 ^ a * 3 ^ b
 
-car'' :: Integral a => a -> a
-car'' z = iter z 0
-    where iter z n | 2 `divides` z = iter (z `div` 2) (n + 1)
-                   | otherwise     = n
+cari :: Integral a => a -> a
+cari z = iter z 0
+    where iter z n | z `rem` 2 == 0 = iter (z `div` 2) (n + 1)
+                   | otherwise      = n
 
-cdr'' :: Integral a => a -> a
-cdr'' z = iter z 0
-    where iter z n | 3 `divides` z = iter (z `div` 2) (n + 1)
-                   | otherwise     = n
-
-
-divides :: Integral a => a -> a -> Bool
-divides a b = b `rem` a == 0
+cdri :: Integral a => a -> a
+cdri z = iter z 0
+    where iter z n | z `rem` 3 == 0 = iter (z `div` 2) (n + 1)
+                   | otherwise      = n
 
 -- 2.6
 zero :: (a -> a) -> (a -> a)
@@ -123,5 +122,70 @@ checkChurchEncoding =
     where
         int n = (n (+1)) 0
 
+-- 2.7 & 2.8
+data Interval = Interval { lower :: Double, upper :: Double } deriving (Eq)
 
+instance Show Interval where
+    show (Interval l u) = "[" ++ show l ++ ", " ++ show u ++ "]"
+
+instance Num Interval where
+    (Interval l1 u1) + (Interval l2 u2) = Interval (l1 + l2) (u1 + u2)
+    (Interval l1 u1) - (Interval l2 u2) = Interval (l1 - u2) (u1 - l2)
+    (Interval l1 u1) * (Interval l2 u2) = 
+        let p1 = l1 * l2
+            p2 = l1 * u2
+            p3 = u1 * l2
+            p4 = u1 * u2
+         in Interval (minimum [p1,p2,p3,p4]) (maximum [p1,p2,p3,p4])
+    negate = undefined
+    abs = undefined
+    signum = undefined
+    fromInteger = undefined
+
+{- Code here is overridden by 2.10
+
+instance Fractional Interval where
+    recip (Interval l u) = Interval (1 / u) (1 / l)
+    fromRational = undefined
+
+-}
+
+-- 2.9 n/a
+
+-- 2.10
+instance Fractional Interval where
+    recip (Interval l u) = if l < 0 && u > 0
+        then error "Interval in denominator contains zero."
+        else Interval (1 / u) (1 / l)
+    fromRational = undefined
+
+-- 2.11
+fastMul :: Interval -> Interval -> Interval
+fastMul (Interval w x) (Interval y z) = fmi w x y z
+    where
+        fmi w x y z | w >= 0 && y >= 0 = Interval (w * y) (x * z)
+
+                    | w >= 0 && z >= 0 = Interval (x * y) (x * z)
+                    | y >= 0 && x >= 0 = Interval (z * w) (z * x)
+
+                    | x >= 0 && z >= 0 = Interval (min (x * y) (z * w))
+                                                  (max (x * z) (w * y))
+
+                    | w >= 0           = Interval (x * y) (z * w)
+                    | y >= 0           = Interval (z * w) (x * y)
+
+                    | x >= 0           = Interval (x * y) (w * y)
+                    | z >= 0           = Interval (z * w) (w * y)
+
+                    | otherwise        = Interval (x * z) (w * y)
+
+-- 2.12
+makeCenterPercent :: Double -> Double -> Interval
+makeCenterPercent c p = Interval (c * (1 - p)) (c * (1 + p))
+
+center :: Interval -> Double
+center (Interval l u) = (l + u) / 2
+
+percent :: Interval -> Double
+percent (Interval l u) = (u - l) / (u + l)
 
