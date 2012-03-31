@@ -126,58 +126,65 @@ checkChurchEncoding =
 data Interval = Interval { lower :: Double, upper :: Double } deriving (Eq)
 
 instance Show Interval where
-    show (Interval l u) = "[" ++ show l ++ ", " ++ show u ++ "]"
+    show (Interval a b) = "[" ++ show a ++ ", " ++ show b ++ "]"
 
 instance Num Interval where
-    (Interval l1 u1) + (Interval l2 u2) = Interval (l1 + l2) (u1 + u2)
-    (Interval l1 u1) - (Interval l2 u2) = Interval (l1 - u2) (u1 - l2)
-    (Interval l1 u1) * (Interval l2 u2) = 
-        let p1 = l1 * l2
-            p2 = l1 * u2
-            p3 = u1 * l2
-            p4 = u1 * u2
-         in Interval (minimum [p1,p2,p3,p4]) (maximum [p1,p2,p3,p4])
+    (+) = addi
+    (-) = subi
+    (*) = muli
     negate = undefined
     abs = undefined
     signum = undefined
     fromInteger = undefined
 
-{- Code here is overridden by 2.10
-
 instance Fractional Interval where
-    recip (Interval l u) = Interval (1 / u) (1 / l)
+    recip = recipi
     fromRational = undefined
 
--}
+addi :: Interval -> Interval -> Interval
+addi (Interval a b) (Interval c d) = Interval (a + c) (b + d)
+
+subi :: Interval -> Interval -> Interval
+subi (Interval a b) (Interval c d) = Interval (a - d) (b - c)
+
+muli :: Interval -> Interval -> Interval
+muli (Interval a b) (Interval c d) =
+    let p1 = a * c
+        p2 = a * d
+        p3 = b * c
+        p4 = b * d
+     in Interval (minimum [p1,p2,p3,p4]) (maximum [p1,p2,p3,p4])
+
+recipi :: Interval -> Interval
+recipi (Interval a b) = Interval (1 / b) (1 / a)
 
 -- 2.9 n/a
 
 -- 2.10
-instance Fractional Interval where
-    recip (Interval l u) = if l < 0 && u > 0
-        then error "Interval in denominator contains zero."
-        else Interval (1 / u) (1 / l)
-    fromRational = undefined
+recipiSafe :: Interval -> Interval
+recipiSafe (Interval a b) = if a < 0 && b > 0
+    then error "Interval in denominator contains zero."
+    else Interval (1 / b) (1 / a)
 
 -- 2.11
-fastMul :: Interval -> Interval -> Interval
-fastMul (Interval w x) (Interval y z) = fmi w x y z
+fastMuli :: Interval -> Interval -> Interval
+fastMuli (Interval a b) (Interval c d) = fmi a b c d
     where
-        fmi w x y z | w >= 0 && y >= 0 = Interval (w * y) (x * z)
+        fmi a b c d | a >= 0 && c >= 0 = Interval (a * c) (b * d)
 
-                    | w >= 0 && z >= 0 = Interval (x * y) (x * z)
-                    | y >= 0 && x >= 0 = Interval (z * w) (z * x)
+                    | a >= 0 && d >= 0 = Interval (b * c) (b * d)
+                    | c >= 0 && b >= 0 = Interval (d * a) (d * b)
 
-                    | x >= 0 && z >= 0 = Interval (min (x * y) (z * w))
-                                                  (max (x * z) (w * y))
+                    | b >= 0 && d >= 0 = Interval (min (b * c) (d * a))
+                                                  (max (b * d) (a * c))
 
-                    | w >= 0           = Interval (x * y) (z * w)
-                    | y >= 0           = Interval (z * w) (x * y)
+                    | a >= 0           = Interval (b * c) (d * a)
+                    | c >= 0           = Interval (d * a) (b * c)
 
-                    | x >= 0           = Interval (x * y) (w * y)
-                    | z >= 0           = Interval (z * w) (w * y)
+                    | b >= 0           = Interval (b * c) (a * c)
+                    | d >= 0           = Interval (d * a) (a * c)
 
-                    | otherwise        = Interval (x * z) (w * y)
+                    | otherwise        = Interval (b * d) (a * c)
 
 -- 2.12
 makeCenterPercent :: Double -> Double -> Interval
@@ -188,4 +195,7 @@ center (Interval l u) = (l + u) / 2
 
 percent :: Interval -> Double
 percent (Interval l u) = (u - l) / (u + l)
+
+
+
 
