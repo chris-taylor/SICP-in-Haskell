@@ -261,5 +261,16 @@ cc amount coinValues
         noMore [] = True
         noMore xs = False
 
+-- 2.20
 
+{-  Haskell functions can't accept a variable number of arguments (it wouldn't
+    play nice with the type system) but since this function expects integers,
+    I figure it's okay for it to accept a list instead. -}
+
+sameParity :: Integral a => [a] -> [a]
+sameParity (x:xs) = x : fun xs where
+    fun [] = []
+    fun (y:ys) | parityMatch y = y : fun ys
+               | otherwise     = fun ys
+    parityMatch y = even (x - y)
 
