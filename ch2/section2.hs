@@ -175,3 +175,16 @@ treeMap f (Branch xs) = Branch (map (treeMap f) xs)
 
 squareTree'' :: Num a => Tree a -> Tree a
 squareTree'' t = treeMap (^2) t
+
+-- 2.32
+-- To find the subsets of a set S, first pick an element x. Each subset either
+-- contains x or not. Of the subsets that contain x, removing the element x
+-- leaves one of the subsets that doesn't contain x. Therefore to generate
+-- all the subsets of S, find the subsets that don't contain x, and then take
+-- the union of these, with copies of themselves with x appended.
+subsets :: [a] -> [[a]]
+subsets []     = [[]]
+subsets (x:xs) = let rest = subsets xs
+                  in rest ++ (map (x:) rest)
+
+-- 2.33
