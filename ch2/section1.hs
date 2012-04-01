@@ -196,6 +196,48 @@ center (Interval l u) = (l + u) / 2
 percent :: Interval -> Double
 percent (Interval l u) = (u - l) / (u + l)
 
+-- 2.13 n/a
+-- 2.14 n/a
+-- 2.15 n/a
+-- 2.16 n/a
+
+-- 2.17
+data Cons a = Nil | Cons a (Cons a) deriving (Eq)
+
+instance Show a => Show (Cons a) where
+    show x = "(" ++ str x ++ ")"
+        where
+            str  Nil         = ""
+            str (Cons x Nil) = show x
+            str (Cons x y)   = show x ++ " " ++ str y
+
+list :: [a] -> Cons a
+list []     = Nil
+list (x:xs) = Cons x (list xs)
+
+{-  At the moment this only operates on lists of the same type. Hopefully I can
+    figure out a way to make it operate on lists of objects of different types
+    Maybe it's possible to wrap everything up in something like
+
+        data SchemeObject = SO (forall a. Show a => a)
+
+    Another option would be to define
+
+        data SchemeObject = SchemeNum Double
+                          | SchemeString String
+                          | SchemeBool Bool
+                          | ...
+
+    but this is getting close to an "informally specified, bug-ridden
+    implementation of half of Common Lisp." -}
+
+lastPair :: Cons a -> Cons a
+lastPair p@(Cons x Nil) = p
+lastPair   (Cons x y)   = lastPair y
+
+-- 2.18
+
+
 
 
 
