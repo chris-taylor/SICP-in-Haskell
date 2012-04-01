@@ -241,6 +241,25 @@ reverseList xs = iter xs Nil where
     iter  Nil result       = result
     iter (Cons x y) result = iter y (Cons x result)
 
+-- 2.19
+usCoins :: [Integer]
+usCoins = [50,25,10,5,1]
+
+ukCoins :: [Integer]
+ukCoins = [100,50,20,10,5,2,1]
+
+cc :: (Ord a, Num a, Num b) => a -> [a] -> b
+cc amount coinValues
+    | amount == 0                     = 1
+    | amount < 0 || noMore coinValues = 0
+    | otherwise =
+        (cc amount (exceptFirstDenomination coinValues)) + 
+        (cc (amount - (firstDenomination coinValues)) coinValues)
+    where
+        firstDenomination = head
+        exceptFirstDenomination = tail
+        noMore [] = True
+        noMore xs = False
 
 
 
