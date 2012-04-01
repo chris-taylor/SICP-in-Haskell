@@ -25,6 +25,9 @@ cdr :: Cons a -> Cons a
 cdr Nil = error "Can't take the cdr of Nil"
 cdr (Cons _ y) = y
 
+cadr = car . cdr
+cddr = cdr . cdr
+
 list :: [a] -> Cons a
 list []     = Nil
 list (x:xs) = Cons x (list xs)
@@ -133,5 +136,34 @@ fringe :: Tree a -> [a]
 fringe (Leaf a)    = [a]
 fringe (Branch ts) = concat (map fringe ts)
 
+-- 2.29
+-- a.
+data Rod a = Rod { len :: a, struct :: Mobile a } deriving (Eq,Show)
 
+data Mobile a = Weight a
+              | Mobile { left :: Rod a, right ::  Rod a }
+              deriving (Eq,Show)
 
+-- b.
+totalWeight :: Num a => Mobile a -> a
+totalWeight (Weight x)   = x
+totalWeight (Mobile l r) = totalWeight (struct l) + totalWeight (struct r)
+
+-- c.
+balanced :: Num a => Mobile a -> Bool
+balanced (Weight x)   = True
+balanced (Mobile l r) = torque l == torque r
+                        && balanced (struct l)
+                        && balanced (struct r)
+    where torque (Rod len str) = len * totalWeight str
+
+-- 2.30
+squareTree :: Num a => Tree a -> Tree a
+squareTree (Leaf x)    = Leaf (x^2)
+squareTree (Branch xs) = Branch (square xs)
+    where square []     = []
+          square (y:ys) = (squareTree y): square ys
+
+squareTree :: Num a => Tree a -> Tree a
+squareTree' (Leaf x)    = Leaf (x^2)
+squareTree' (Branch xs) = Branch (map squareTree' xs)
