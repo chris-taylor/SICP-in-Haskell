@@ -236,7 +236,10 @@ lastPair p@(Cons x Nil) = p
 lastPair   (Cons x y)   = lastPair y
 
 -- 2.18
-
+reverseList :: Cons a -> Cons a
+reverseList xs = iter xs Nil where
+    iter  Nil result       = result
+    iter (Cons x y) result = iter y (Cons x result)
 
 
 
