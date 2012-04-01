@@ -1,4 +1,13 @@
--- 2.17
+import Data.List (intersperse)
+
+{-  Scheme lists using Cons, car, cdr. Probably I should just embrace
+    Haskell and use the built in functions
+        (:)  <==> cons
+        head <==> car
+        tail <==> cdr
+    instead, but it feels important to keep something of the flavour of
+    Scheme. -}
+
 data Cons a = Nil | Cons a (Cons a) deriving (Eq)
 
 instance Show a => Show (Cons a) where
@@ -8,9 +17,19 @@ instance Show a => Show (Cons a) where
             str (Cons x Nil) = show x
             str (Cons x y)   = show x ++ " " ++ str y
 
+car :: Cons a -> a
+car Nil = error "Can't take the car of Nil"
+car (Cons x _) = x
+
+cdr :: Cons a -> Cons a
+cdr Nil = error "Can't take the cdr of Nil"
+cdr (Cons _ y) = y
+
 list :: [a] -> Cons a
 list []     = Nil
 list (x:xs) = Cons x (list xs)
+
+-- 2.17
 
 {-  At the moment this only operates on lists of the same type. Hopefully I can
     figure out a way to make it operate on lists of objects of different types
@@ -80,6 +99,7 @@ squareList' :: Num a => [a] -> [a]
 squareList' xs = map (^2) xs
 
 -- 2.22 n/a
+-- Maybe I'll complete this exercise later.
 
 -- 2.23
 forEach :: Monad m => (a -> m b) -> [a] -> m ()
@@ -87,4 +107,31 @@ forEach f []     = return ()
 forEach f (x:xs) = do f x
                       forEach f xs
 
--- 2.24
+-- 2.24 n/a
+-- 2.25 n/a
+-- 2.26 n/a
+
+-- Tree data type, for holding lists nested to arbitrary depth.
+data Tree a = Leaf a | Branch [Tree a] deriving (Eq)
+
+instance Show a => Show (Tree a) where
+    show (Leaf x)    = show x
+    show (Branch xs) = "(" ++ interior ++ ")"
+        where interior = concat $ intersperse " " (map show xs)
+
+-- 2.27
+reverseTree :: Tree a -> Tree a
+reverseTree (Leaf x)    = Leaf x
+reverseTree (Branch xs) = Branch (reverse xs)
+
+deepReverseTree :: Tree a -> Tree a
+deepReverseTree (Leaf x)    = Leaf x
+deepReverseTree (Branch xs) = Branch (reverse $ map deepReverseTree xs)
+
+-- 2.28
+fringe :: Tree a -> [a]
+fringe (Leaf a)    = [a]
+fringe (Branch ts) = concat (map fringe ts)
+
+
+
