@@ -286,7 +286,7 @@ squareList' xs = map (^2) xs
 
 -- 2.23
 forEach :: Monad m => (a -> m b) -> [a] -> m ()
-forEach f [] = return ()
+forEach f []     = return ()
 forEach f (x:xs) = do f x
                       forEach f xs
 
