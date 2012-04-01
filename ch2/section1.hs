@@ -282,4 +282,13 @@ squareList (x:xs) = (x^2) : squareList xs
 squareList' :: Num a => [a] -> [a]
 squareList' xs = map (^2) xs
 
+-- 2.22 n/a
+
+-- 2.23
+forEach :: Monad m => (a -> m b) -> [a] -> m ()
+forEach f [] = return ()
+forEach f (x:xs) = do f x
+                      forEach f xs
+
+-- 2.24
 
