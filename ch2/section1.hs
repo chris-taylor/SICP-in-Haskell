@@ -274,3 +274,12 @@ sameParity (x:xs) = x : fun xs where
                | otherwise     = fun ys
     parityMatch y = even (x - y)
 
+-- 2.21
+squareList :: Num a => [a] -> [a]
+squareList []     = []
+squareList (x:xs) = (x^2) : squareList xs
+
+squareList' :: Num a => [a] -> [a]
+squareList' xs = map (^2) xs
+
+
