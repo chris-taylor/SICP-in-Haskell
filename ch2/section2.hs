@@ -164,6 +164,14 @@ squareTree (Branch xs) = Branch (square xs)
     where square []     = []
           square (y:ys) = (squareTree y): square ys
 
-squareTree :: Num a => Tree a -> Tree a
+squareTree' :: Num a => Tree a -> Tree a
 squareTree' (Leaf x)    = Leaf (x^2)
 squareTree' (Branch xs) = Branch (map squareTree' xs)
+
+-- 2.31
+treeMap :: (a -> b) -> Tree a -> Tree b
+treeMap f (Leaf x)    = Leaf (f x)
+treeMap f (Branch xs) = Branch (map (treeMap f) xs)
+
+squareTree'' :: Num a => Tree a -> Tree a
+squareTree'' t = treeMap (^2) t
