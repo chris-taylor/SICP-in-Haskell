@@ -1,4 +1,4 @@
-import Data.List (intersperse)
+import Data.List (intersperse,nub)
 
 {-  Scheme lists using Cons, car, cdr. Probably I should just embrace
     Haskell and use the built in functions
@@ -294,5 +294,25 @@ tripleSum s = filter unique $ map makeTriples $ filter sumLessThan $ uniquePairs
           unique (x, y, z) = x > y && y > z
 
 -- 2.42
+queens :: Int -> [[Int]]
+queens boardSize = queenCols boardSize where
+    queenCols k = if k == 0
+        then [emptyBoard]
+        else filter (isSafe)
+                    (flatMap
+                        (\restOfQueens ->
+                            map (\newRow -> adjoinPosition newRow k restOfQueens)
+                                [1..boardSize])
+                        (queenCols (k - 1)))
+    isSafe positions = noRowAttacks positions && noDiagAttacks positions
+        where noRowAttacks xs  = allUnique xs
+              noDiagAttacks xs = allUnique (diags xs) && allUnique (diags2 xs)
+              diags xs         = map2 (-) xs [1..]
+              diags2 xs        = map2 (+) xs [1..]
+              allUnique xs     = length (nub xs) == length xs
+    adjoinPosition newRow k restOfQueens = newRow : restOfQueens
+    emptyBoard = []
 
+-- 2.43
+-- This is an extended example that uses I/O and images. Defer to later.
 
