@@ -202,12 +202,18 @@ accumLength :: Integral b => [a] -> b
 accumLength xs = accumulate (\x n -> n + 1) 0 xs
 
 -- 2.34
-hornerEval :: Num a -> a -> [a] -> a
+hornerEval :: Num a => a -> [a] -> a
 hornerEval x coefSequence =
     accumulate (\thisCoef higherTerms -> higherTerms * x + thisCoef)
                0
                coefSequence
 
+-- 2.35
+countLeaves :: Integral n => Tree a -> n
+countLeaves (Leaf x)    = 1
+countLeaves (Branch xs) = accumulate (\x n -> n + x) 0 (map countLeaves xs)
+
+-- 2.36
 
 
 
