@@ -243,3 +243,50 @@ matrixMatrixProduct a b = map (matrixVectorProduct cols) a
     where cols = transpose b
 
 -- 2.38
+foldRight :: (a -> b -> b) -> b -> [a] -> b
+foldRight op initial [] = initial
+foldRight op initial (x:xs) = x `op` foldRight op initial xs
+
+foldLeft :: (b -> a -> b) -> b -> [a] -> b
+foldLeft op initial xs = iter initial xs
+    where iter result []     = result
+          iter result (x:xs) = iter (result `op` x) xs
+
+-- 2.39
+reverseRight :: [a] -> [a]
+reverseRight xs = foldRight (\x res -> res ++ [x]   ) [] xs
+
+reverseLeft :: [a] -> [a]
+reverseLeft xs = foldLeft (flip (:)) [] xs
+
+-- 2.40 (uses isPrime from Chapter 1, Section 2)
+isPrime :: Integral a => a -> Bool
+isPrime 1 = False
+isPrime n = smallestDivisor n == n
+    where
+        smallestDivisor n = findDivisor n 2
+        findDivisor n test | test ^ 2 > n     = n
+                           | test `divides` n = test
+                           | otherwise        = findDivisor n (test + 1)
+        divides a b = b `rem` a == 0
+
+flatMap :: (a -> [b]) -> [a] -> [b]
+flatMap f xs = accumulate (++) [] (map f xs)
+
+isPrimeSum :: Integral a => (a, a) -> Bool
+isPrimeSum (x,y) = isPrime (x + y)
+
+makePairSum :: Num a => (a,a) -> (a,a,a)
+makePairSum (x,y) = (x, y, x + y)
+
+uniquePairs :: (Num a, Enum a) => a -> [(a,a)]
+uniquePairs n = flatMap (\i -> pairsBelow i) [1..n]
+    where pairsBelow i = map (\j -> (i,j)) [1..i-1]
+
+primeSumPairs :: Integral a => a -> [(a,a,a)]
+primeSumPairs n =
+    map makePairSum
+        (filter isPrimeSum
+                (uniquePairs n))
+
+
