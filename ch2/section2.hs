@@ -284,9 +284,15 @@ uniquePairs n = flatMap (\i -> pairsBelow i) [1..n]
     where pairsBelow i = map (\j -> (i,j)) [1..i-1]
 
 primeSumPairs :: Integral a => a -> [(a,a,a)]
-primeSumPairs n =
-    map makePairSum
-        (filter isPrimeSum
-                (uniquePairs n))
+primeSumPairs n = map makePairSum $ filter isPrimeSum $ uniquePairs n
+
+-- 2.41
+tripleSum :: (Ord a, Num a, Enum a) => a -> [(a,a,a)]
+tripleSum s = filter unique $ map makeTriples $ filter sumLessThan $ uniquePairs s
+    where makeTriples (x, y) = (x, y, s - x - y)
+          sumLessThan (x, y) = x + y < s
+          unique (x, y, z) = x > y && y > z
+
+-- 2.42
 
 
