@@ -200,3 +200,14 @@ accumAppend xs ys = accumulate (:) ys xs
 
 accumLength :: Integral b => [a] -> b
 accumLength xs = accumulate (\x n -> n + 1) 0 xs
+
+-- 2.34
+hornerEval :: Num a -> a -> [a] -> a
+hornerEval x coefSequence =
+    accumulate (\thisCoef higherTerms -> higherTerms * x + thisCoef)
+               0
+               coefSequence
+
+
+
+
