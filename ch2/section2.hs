@@ -214,6 +214,32 @@ countLeaves (Leaf x)    = 1
 countLeaves (Branch xs) = accumulate (\x n -> n + x) 0 (map countLeaves xs)
 
 -- 2.36
+-- Not appropriate for Haskell, since functions cannot have a variable number
+-- of arguments. The equivalent thing would be to define accumulate2, accumulate3
+-- etc, up to some sensible upper bound.
 
+-- 2.37
+map2 :: (a -> b -> c) -> [a] -> [b] -> [c]
+map2 op xs ys = accumulate (\(x,y) fs -> (x `op` y) : fs) [] (zip xs ys) 
 
+dotProduct :: Num a => [a] -> [a] -> a
+dotProduct u v = accumulate (+) 0 (map2 (*) u v)
 
+matrixVectorProduct :: Num a => [[a]] -> [a] -> [a]
+matrixVectorProduct a v = map (dotProduct v) a
+
+transpose :: [[a]] -> [[a]]
+transpose xs
+    | empty (head xs) = []
+    | otherwise       = heads : transpose tails
+    where
+        heads = map head xs
+        tails = map tail xs
+        empty [] = True
+        empty xs = False
+
+matrixMatrixProduct :: Num a => [[a]] -> [[a]] -> [[a]]
+matrixMatrixProduct a b = map (matrixVectorProduct cols) a
+    where cols = transpose b
+
+-- 2.38
