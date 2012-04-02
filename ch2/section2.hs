@@ -188,3 +188,15 @@ subsets (x:xs) = let rest = subsets xs
                   in rest ++ (map (x:) rest)
 
 -- 2.33
+accumulate :: (a -> b -> b) -> b -> [a] -> b
+accumulate op initial [] = initial
+accumulate op initial (x:xs) = x `op` accumulate op initial xs
+
+accumMap :: (a -> b) -> [a] -> [b]
+accumMap f xs = accumulate (\x y -> (f x) : y) [] xs
+
+accumAppend :: [a] -> [a] -> [a]
+accumAppend xs ys = accumulate (:) ys xs
+
+accumLength :: Integral b => [a] -> b
+accumLength xs = accumulate (\x n -> n + 1) 0 xs
