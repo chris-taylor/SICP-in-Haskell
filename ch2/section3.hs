@@ -22,6 +22,26 @@ instance Show Expr where
     show (Prod x y) = "(* " ++ show x ++ " " ++ show y ++ ")"
     show (Expt x n) = "(^ " ++ show x ++ " " ++ show n ++ ")"
 
+--takeUntil :: Eq a => a -> [a] -> [a]
+--takeUntil v []     = []
+--takeUntil v (x:xs) = if x == v
+--    then []
+--    else x : takeUntil v xs
+
+--splitOn :: Eq a => a -> [a] -> ([a], [a])
+--splitOn v (x:xs) = if x == v
+--    then ([], xs)
+--    else (x:hd,tl) where (hd,tl) = splitOn v xs
+
+--instance Read Expr where
+--    read (hd:tl) = if hd == "("
+--        then makeExpr op arg1 arg2
+--        else error "Expressions must start with a parenthesis"
+--        where
+--            (op,rest) = splitOn ' ' tl
+--            (arg1,rest') = splitOn ' ' rest
+--            (arg2,_) = splitOn ')' 
+
 makeSum :: Expr -> Expr -> Expr
 makeSum (Num x) (Num y) = Num (x + y)
 makeSum x (Num 0.0)     = x
@@ -56,3 +76,26 @@ deriv x expr = d expr where
 -- Handle infix as well as prefix notation. To do this I plan to make Expr an
 -- instance of Read so that I can type in expressions as strings.
 
+-- 2.59
+isElementOf :: Eq a => a -> [a] -> Bool
+y `isElementOf` []     = False
+y `isElementOf` (x:xs) = if y == x then True
+                                   else y `isElementOf` xs 
+
+adjoin :: Eq a => a -> [a] -> [a]
+y `adjoin` set = if y `isElementOf` set then set
+                                        else y : set
+
+intersect :: Eq a => [a] -> [a] -> [a]
+[]     `intersect` xs = []
+(y:ys) `intersect` xs = if y `isElementOf` xs
+    then y : (ys `intersect` xs)
+    else ys `intersect` xs
+
+union :: Eq a => [a] -> [a] -> [a]
+[]     `union` xs = xs
+(y:ys) `union` xs = if y `isElementOf` xs
+    then (ys `union` xs)
+    else y : (ys `union` xs)
+
+    
