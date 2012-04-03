@@ -287,3 +287,8 @@ makeCodeTree left right = HTree (symbols left ++ symbols right)
                                 (weight left + weight right)
                                 left
                                 right
+
+-- 2.70 n/a
+-- 2.71 n/a
+-- 2.72 n/a
+
