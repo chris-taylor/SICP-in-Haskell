@@ -223,9 +223,6 @@ data HuffmanTree a = Leaf a Integer
                    | HTree [a] Integer (HuffmanTree a) (HuffmanTree a)
                    deriving (Eq,Show)
 
-makeLeafSet :: [(a, Integer)] -> [HuffmanTree a]
-makeLeafSet = map (\(a,n) -> Leaf a n)
-
 isLeaf :: HuffmanTree a -> Bool
 isLeaf (Leaf _ _) = True
 isLeaf _          = False
@@ -240,12 +237,6 @@ symbols (HTree as _ _ _) = as
 weight :: HuffmanTree a -> Integer  
 weight (Leaf _ w) = w
 weight (HTree _ w _ _) = w
-
-makeCodeTree :: HuffmanTree a -> HuffmanTree a -> HuffmanTree a
-makeCodeTree left right = HTree (symbols left ++ symbols right)
-                                (weight left + weight right)
-                                left
-                                right
 
 decode :: String -> HuffmanTree a -> [a]
 decode bits tree = decode1 bits tree where
@@ -271,3 +262,28 @@ encodeSymbol x (HTree xs _ left right)
     | x `isElementOf` symbols right = '1' : encodeSymbol x right
     | otherwise = error "Symbol not in tree."
 
+-- 2.69
+generateHuffmanTree :: [(a,Integer)] -> HuffmanTree a
+generateHuffmanTree = successiveMerge . makeLeafSet
+
+successiveMerge :: [HuffmanTree a] -> HuffmanTree a
+successiveMerge (x:[])     = x
+successiveMerge (x:y:rest) = successiveMerge $ insert (makeCodeTree x y) rest
+
+insert :: HuffmanTree a -> [HuffmanTree a] -> [HuffmanTree a]
+insert t [] = [t]
+insert t (x:xs)
+    | weight t < weight x = t:x:xs
+    | otherwise           = x:insert t xs
+
+makeLeafSet :: [(a, Integer)] -> [HuffmanTree a]
+makeLeafSet xs = iter xs [] where
+    iter [] result = result
+    iter (x:xs) result = iter xs (insert newLeaf result) where
+        newLeaf = Leaf (fst x) (snd x)
+
+makeCodeTree :: HuffmanTree a -> HuffmanTree a -> HuffmanTree a
+makeCodeTree left right = HTree (symbols left ++ symbols right)
+                                (weight left + weight right)
+                                left
+                                right
