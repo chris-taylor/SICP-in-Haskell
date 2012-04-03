@@ -80,10 +80,10 @@ deriv x expr = d expr where
 
 -- 2.59
 class Set s where
-    isElementOf :: (Eq a, Ord a) => a -> s a -> Bool
-    adjoin :: (Eq a, Ord a) => a -> s a -> s a
-    intersect :: (Eq a, Ord a) => s a -> s a -> s a
-    union :: (Eq a, Ord a) => s a -> s a -> s a
+    isElementOf :: Ord a => a -> s a -> Bool
+    adjoin :: Ord a => a -> s a -> s a
+    intersect :: Ord a => s a -> s a -> s a
+    union :: Ord a => s a -> s a -> s a
 
 instance Set [] where
 
@@ -205,4 +205,14 @@ toTree xs = fst $ partialTree xs (length xs) where
                  (leftTree, y:ys)  = partialTree xs leftSize
                  (rightTree, rest) = partialTree ys rightSize
               in (Tree y leftTree rightTree, rest)
+
+-- 2.66
+data Record a b = Record { key :: a, value :: b } deriving (Show,Eq)
+
+dbLookup :: Ord a => a -> BinaryTree (Record a b) -> Maybe (Record a b)
+dbLookup x  Nil = Nothing
+dbLookup x (Tree record l r)
+    | x == key record = Just record
+    | x < key record  = dbLookup x l
+    | x > key record  = dbLookup x r
 
