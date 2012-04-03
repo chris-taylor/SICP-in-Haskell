@@ -125,7 +125,7 @@ instance Set Bag where
 
     Bag ys `union` Bag xs = Bag (ys ++ xs)
 
--- 2.61
+-- 2.61 && 2.62
 data OrderedList a = OL [a] deriving (Eq,Show)
 
 instance Set OrderedList where
@@ -159,4 +159,50 @@ instance Set OrderedList where
             | x < y  = x : (xs `ou` (y:ys))
             | x > y  = y : ((x:xs) `ou` ys)
 
--- 2.62
+-- 2.63 n/a
+-- 2.64 n/a
+
+-- 2.65
+data BinaryTree a = Nil | Tree a (BinaryTree a) (BinaryTree a) deriving (Eq)
+
+instance Show a => Show (BinaryTree a) where
+    show Nil = "."
+    show (Tree x l r) ="(" ++ show x ++ " " ++ show l ++ " " ++ show r ++ ")"
+
+instance Set BinaryTree where
+
+    y `isElementOf` Nil = False
+    y `isElementOf` Tree x l r
+        | y == x = True
+        | y < x  = y `isElementOf` l
+        | y > x  = y `isElementOf` r
+
+    y `adjoin` Nil = Tree y Nil Nil
+    y `adjoin` Tree x l r
+        | y == x = Tree x l r
+        | y < x  = Tree x (y `adjoin` l) r
+        | y > x  = Tree x l (y `adjoin` r)
+
+    xs `intersect` ys = toTree $ (toList xs) `intersect` (toList ys)
+
+    xs `union` ys = toTree $ (toList xs) `union` (toList ys)
+
+toList :: BinaryTree a -> [a]
+toList  Nil         = []
+toList (Tree x l r) = (toList l) ++ (x : toList r)
+
+toList' :: BinaryTree a -> [a]
+toList' t = copyToList t [] where
+    copyToList  Nil         result = result
+    copyToList (Tree x l r) result = copyToList l (x : copyToList r result)
+
+toTree :: [a] -> BinaryTree a
+toTree xs = fst $ partialTree xs (length xs) where
+    partialTree xs n = if n == 0
+        then (Nil, xs)
+        else let leftSize  = (n - 1) `quot` 2
+                 rightSize = n - leftSize - 1
+                 (leftTree, y:ys)  = partialTree xs leftSize
+                 (rightTree, rest) = partialTree ys rightSize
+              in (Tree y leftTree rightTree, rest)
+
