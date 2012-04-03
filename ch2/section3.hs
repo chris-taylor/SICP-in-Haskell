@@ -1,3 +1,5 @@
+import Data.List (nub,sort)
+
 -- 2.54
 isEqual :: Eq a => [a] -> [a] -> Bool
 isEqual (x:xs) [] = False
@@ -77,25 +79,84 @@ deriv x expr = d expr where
 -- instance of Read so that I can type in expressions as strings.
 
 -- 2.59
-isElementOf :: Eq a => a -> [a] -> Bool
-y `isElementOf` []     = False
-y `isElementOf` (x:xs) = if y == x then True
-                                   else y `isElementOf` xs 
+class Set s where
+    isElementOf :: (Eq a, Ord a) => a -> s a -> Bool
+    adjoin :: (Eq a, Ord a) => a -> s a -> s a
+    intersect :: (Eq a, Ord a) => s a -> s a -> s a
+    union :: (Eq a, Ord a) => s a -> s a -> s a
 
-adjoin :: Eq a => a -> [a] -> [a]
-y `adjoin` set = if y `isElementOf` set then set
-                                        else y : set
+instance Set [] where
 
-intersect :: Eq a => [a] -> [a] -> [a]
-[]     `intersect` xs = []
-(y:ys) `intersect` xs = if y `isElementOf` xs
-    then y : (ys `intersect` xs)
-    else ys `intersect` xs
+    y `isElementOf` []     = False
+    y `isElementOf` (x:xs) = if y == x
+        then True
+        else y `isElementOf` xs 
 
-union :: Eq a => [a] -> [a] -> [a]
-[]     `union` xs = xs
-(y:ys) `union` xs = if y `isElementOf` xs
-    then (ys `union` xs)
-    else y : (ys `union` xs)
+    y `adjoin` set = if y `isElementOf` set
+        then set
+        else y : set
 
-    
+    []     `intersect` xs = []
+    (y:ys) `intersect` xs = if y `isElementOf` xs
+        then y : (ys `intersect` xs)
+        else ys `intersect` xs
+
+    []     `union` xs = xs
+    (y:ys) `union` xs = if y `isElementOf` xs
+        then (ys `union` xs)
+        else y : (ys `union` xs)
+
+-- 2.60
+data Bag a = Bag [a] deriving (Show)
+
+instance Set Bag where
+
+    y `isElementOf` Bag []     = False
+    y `isElementOf` Bag (x:xs) = if y == x
+        then True
+        else y `isElementOf` Bag xs
+
+    y `adjoin` Bag xs = Bag (y:xs)
+
+    Bag []     `intersect` bag = Bag []
+    Bag (y:ys) `intersect` bag = if y `isElementOf` bag
+        then y `adjoin` (Bag ys `intersect` bag)
+        else Bag ys `intersect` bag
+
+    Bag ys `union` Bag xs = Bag (ys ++ xs)
+
+-- 2.61
+data OrderedList a = OL [a] deriving (Eq,Show)
+
+instance Set OrderedList where
+
+    y `isElementOf` OL []     = False
+    y `isElementOf` OL (x:xs)
+        | y == x = True
+        | y < x  = False
+        | otherwise = y `isElementOf` OL xs
+
+    y `adjoin` OL xs = OL (y `insert` xs) where
+        y `insert` [] = [y]
+        y `insert` (x:xs)
+            | y == x = x:xs
+            | y < x  = y:x:xs
+            | y > x  = x : (y `insert` xs)
+
+    OL xs `intersect` OL ys = OL (xs `oi` ys) where
+        []     `oi` ys = []
+        xs     `oi` [] = []
+        (x:xs) `oi` (y:ys)
+            | x == y = x : (xs `oi` ys)
+            | x < y  = xs `oi` (y:ys)
+            | y < x  = (x:xs) `oi` ys
+
+    OL xs `union` OL ys = OL (xs `ou` ys) where
+        [] `ou` xs = xs
+        xs `ou` [] = xs
+        (x:xs) `ou` (y:ys)
+            | y == x = x : (xs `ou` ys)
+            | x < y  = x : (xs `ou` (y:ys))
+            | x > y  = y : ((x:xs) `ou` ys)
+
+-- 2.62
