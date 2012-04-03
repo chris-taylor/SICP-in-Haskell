@@ -216,3 +216,58 @@ dbLookup x (Tree record l r)
     | x < key record  = dbLookup x l
     | x > key record  = dbLookup x r
 
+-- 2.67 n/a
+
+-- 2.68
+data HuffmanTree a = Leaf a Integer
+                   | HTree [a] Integer (HuffmanTree a) (HuffmanTree a)
+                   deriving (Eq,Show)
+
+makeLeafSet :: [(a, Integer)] -> [HuffmanTree a]
+makeLeafSet = map (\(a,n) -> Leaf a n)
+
+isLeaf :: HuffmanTree a -> Bool
+isLeaf (Leaf _ _) = True
+isLeaf _          = False
+
+symbol :: HuffmanTree a -> a
+symbol (Leaf a _) = a
+
+symbols :: HuffmanTree a -> [a]
+symbols (Leaf a _)       = [a]
+symbols (HTree as _ _ _) = as
+
+weight :: HuffmanTree a -> Integer  
+weight (Leaf _ w) = w
+weight (HTree _ w _ _) = w
+
+makeCodeTree :: HuffmanTree a -> HuffmanTree a -> HuffmanTree a
+makeCodeTree left right = HTree (symbols left ++ symbols right)
+                                (weight left + weight right)
+                                left
+                                right
+
+decode :: String -> HuffmanTree a -> [a]
+decode bits tree = decode1 bits tree where
+    decode1 ""     currentBranch = []
+    decode1 (b:bs) currentBranch = if isLeaf nextBranch
+        then (symbol nextBranch) : (decode1 bs tree)
+        else decode1 bs nextBranch
+        where
+            nextBranch = chooseBranch b currentBranch
+            chooseBranch '0' (HTree _ _ l _) = l
+            chooseBranch '1' (HTree _ _ _ r) = r
+            chooseBranch _ _ = error "Bad bit."
+
+encode :: Ord a => [a] -> HuffmanTree a -> String
+encode []     tree = ""
+encode (x:xs) tree = (encodeSymbol x tree) ++ (encode xs tree)
+
+encodeSymbol :: Ord a => a -> HuffmanTree a -> String
+encodeSymbol x (HTree xs _ left right)
+    | isLeaf left  && x == symbol left  = "0"
+    | isLeaf right && x == symbol right = "1"
+    | x `isElementOf` symbols left  = '0' : encodeSymbol x left
+    | x `isElementOf` symbols right = '1' : encodeSymbol x right
+    | otherwise = error "Symbol not in tree."
+
