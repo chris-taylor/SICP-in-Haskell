@@ -1,0 +1,1 @@
+data Complex a = Cartesian a a | Polar a a deriving (Eq,Show)
