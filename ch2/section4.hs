@@ -60,6 +60,8 @@ instance Expr Var where
 
 -}
 
+-- 2.74 n/a
+
 -- 2.75
 
 {-  Basic symbol type for dispatch with O(1) comparison. -}
@@ -71,12 +73,6 @@ instance Show Symbol where
 
 instance Eq Symbol where
     (Symbol n1 _) == (Symbol n2 _) = n1 == n2
-
-instance Show (Symbol -> Double) where
-    show x = show (real x) ++ " + " ++ show (imag x) ++ "i"
-
-instance Eq (Symbol -> Double) where
-    x == y = real x == real y && imag x == imag y
 
 {-  Here all of the work is done in the object, rather than in the instance
     declaration, which just does dispatch. The disadvantage is that because
@@ -99,6 +95,12 @@ instance Complex ((->)Symbol) where
     fromRealImag = newComplexFromRealImag
     fromMagAng = newComplexFromMagAng
 
+instance RealFloat a => Show (Symbol -> a) where
+    show x = show (real x) ++ " + " ++ show (imag x) ++ "i"
+
+instance RealFloat a => Eq (Symbol -> a) where
+    x == y = real x == real y && imag x == imag y
+
 newComplexFromRealImag :: RealFloat a => a -> a -> (Symbol -> a)
 newComplexFromRealImag x y = dispatch where
     dispatch msg = case msg of
@@ -117,3 +119,14 @@ newComplexFromMagAng r theta = dispatch where
 
 applyGeneric :: a -> (a -> b) -> b
 applyGeneric op arg = arg op
+
+-- 2.76 n/a
+-- 2.77 n/a
+-- 2.78 n/a
+-- 2.79 n/a
+-- 2.80 n/a
+
+{-  The reason that most of these exercises aren't applicable is that type-
+    tagging is built in to Haskell in the form of the type system. It seems
+    pointless to try and replicate it in a language that already has types
+    built in. -}
