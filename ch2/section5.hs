@@ -1,5 +1,7 @@
 {-# LANGUAGE FlexibleInstances, UndecidableInstances, OverlappingInstances #-}
 
+import Prelude hiding (gcd)
+
 {-  Complex number implementation, for polynomials with complex coefs. -}
 
 data Complex = C Double Double deriving (Eq,Show)
@@ -44,7 +46,7 @@ instance (Polynomial (p PolynomialWitness), Num a, Show (p PolynomialWitness a),
     p + q = addPoly p q
     p * q = mulPoly p q
     negate p = makePoly (variable p) (map negate (terms p))
-    abs = undefined
+    abs = id
     signum = undefined
     fromInteger n = makePoly 'x' [Term 0 (fromInteger n)]
 
@@ -54,9 +56,7 @@ addTerms [] ys = ys
 addTerms (x:xs) (y:ys)
     | order x > order y = x : addTerms xs (y:ys)
     | order x < order y = y : addTerms (x:xs) ys
-    | otherwise         = let z = x + y
-        in if coef z == 0 then addTerms xs ys
-                          else z : addTerms xs ys
+    | otherwise         = (x + y) : addTerms xs ys
 
 addPoly :: (Polynomial p, Num a) => p a -> p a -> p a
 addPoly p q = if variable p == variable q
@@ -126,3 +126,35 @@ divTerms (x:xs) (y:ys) = if order x < order y
 
 -- 2.92
 -- To do.
+
+-- 2.93
+
+{-  To implement the gcd function it is necessary to make polynomials into
+    an instance of Integral. This involves a lot of boilerplate, but otherwise
+    it isn't too hard.
+
+    Note that for the Euclidean algorithm to be well defined on a domain R, all
+    that is necessary is that we have addition, subtraction and commutative
+    multiplication on R, as well as a we of assigning x in R to an integer m x
+    such that m (x * y) >= m x for all nonzero x and y. For integers we have
+    m = abs, and for polynomials we have m = degree. -}
+
+degree :: Polynomial p => p a -> Integer
+degree p = maximum $ map order $ terms p
+
+instance (Polynomial (p PolynomialWitness), Eq (p PolynomialWitness a)) => Ord (p PolynomialWitness a) where
+    compare p q = compare (degree p) (degree q)
+
+instance (Polynomial (p PolynomialWitness), Num (p PolynomialWitness a), Ord (p PolynomialWitness a)) => Real (p PolynomialWitness a) where
+    toRational = toRational . degree
+
+instance (Num a, Polynomial (p PolynomialWitness)) => Enum (p PolynomialWitness a) where
+    toEnum n = makePoly 'x' [Term (toInteger n) 1]
+    fromEnum = fromInteger . degree
+
+instance (Fractional a, Polynomial (p PolynomialWitness), Real (p PolynomialWitness a), Enum (p PolynomialWitness a)) => Integral (p PolynomialWitness a) where
+    divMod = divPoly
+    quotRem = divPoly
+    toInteger = degree
+
+
