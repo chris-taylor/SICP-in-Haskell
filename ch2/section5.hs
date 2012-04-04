@@ -1,6 +1,6 @@
-{-# LANGUAGE FlexibleInstances, UndecidableInstances, OverlappingInstances #-}
+{-# LANGUAGE FlexibleInstances, UndecidableInstances, OverlappingInstances, RankNTypes, ImpredicativeTypes #-}
 
-import Prelude hiding (gcd)
+import Data.Ratio
 
 {-  Complex number implementation, for polynomials with complex coefs. -}
 
@@ -39,15 +39,19 @@ data SparsePoly w a = SP Char [Term a] deriving (Eq,Show)
 instance Polynomial (SparsePoly PolynomialWitness) where
     variable (SP x _) = x
     terms (SP _ t) = t
-    makePoly x t = SP x t
+    makePoly x [] = SP x [0]
+    makePoly x t  = SP x t
 
 -- 2.88
+reduce :: (Polynomial p, Num a) => p a -> p a
+reduce p = makePoly (variable p) (filter (\t -> coef t /= 0) (terms p))
+
 instance (Polynomial (p PolynomialWitness), Num a, Show (p PolynomialWitness a), Eq (p PolynomialWitness a)) => Num (p PolynomialWitness a) where
     p + q = addPoly p q
     p * q = mulPoly p q
     negate p = makePoly (variable p) (map negate (terms p))
-    abs = id
-    signum = undefined
+    abs p = p
+    signum p = makePoly (variable p) [Term 0 1]
     fromInteger n = makePoly 'x' [Term 0 (fromInteger n)]
 
 addTerms :: Num a => [Term a] -> [Term a] -> [Term a]
@@ -85,7 +89,7 @@ data DensePoly w a = DP Char [a] deriving (Eq,Show)
 instance Polynomial (DensePoly PolynomialWitness) where
     variable (DP x _) = x
     terms (DP _ t) = reverse $ map (\(x,i) -> Term i x) (zip (reverse t) [0..])
-    makePoly x [] = DP x []
+    makePoly x [] = DP x [0]
     makePoly x t  = DP x (makeTerms t [n,n-1..0])
         where
             n = maximum (map order t)
@@ -94,50 +98,33 @@ instance Polynomial (DensePoly PolynomialWitness) where
                 then (coef t) : makeTerms ts ns
                 else (fromInteger 0) : makeTerms (t:ts) ns
 
---instance Num a => Num (DensePoly a) where
---    (+) = addPoly
---    (*) = mulPoly
---    negate = negPoly
---    fromInteger = fromIntegerPoly
---    abs = undefined
---    signum = undefined
-
 -- 2.90
 -- Probably needs to go in a separate file?
 
 -- 2.91
-divPoly :: (Polynomial p, Fractional a) => p a -> p a -> (p a, p a)
-divPoly p q = if variable p == variable q
+divModPoly :: (Polynomial p, Fractional a) => p a -> p a -> (p a, p a)
+divModPoly p q = if variable p == variable q
     then (makePoly (variable p) result, makePoly (variable p) remainder)
     else error "Polynomials not in the same variable -- DIVPOLY"
     where
-        (result,remainder) = divTerms (terms p) (terms q)
+        (result,remainder) = divModTerms (terms p) (terms q)
 
-divTerms :: Fractional a => [Term a] -> [Term a] -> ([Term a], [Term a])
-divTerms []      ys    = ([], [])
-divTerms (x:xs) (y:ys) = if order x < order y
+divModTerms :: Fractional a => [Term a] -> [Term a] -> ([Term a], [Term a])
+divModTerms []      ys    = ([], [])
+divModTerms (x:xs) (y:ys) = if order x < order y
     then ([], x:xs)
     else let newCoef = coef x / coef y
              newOrder = order x - order y
              firstTerm = Term newOrder newCoef
              rm = map (* negate firstTerm) ys
-             (restOfResult, remainder) = divTerms (addTerms rm xs) (y:ys)
+             (restOfResult, remainder) = divModTerms (addTerms rm xs) (y:ys)
           in (firstTerm:restOfResult, remainder)
 
 -- 2.92
 -- To do.
 
 -- 2.93
-
-{-  To implement the gcd function it is necessary to make polynomials into
-    an instance of Integral. This involves a lot of boilerplate, but otherwise
-    it isn't too hard.
-
-    Note that for the Euclidean algorithm to be well defined on a domain R, all
-    that is necessary is that we have addition, subtraction and commutative
-    multiplication on R, as well as a we of assigning x in R to an integer m x
-    such that m (x * y) >= m x for all nonzero x and y. For integers we have
-    m = abs, and for polynomials we have m = degree. -}
+type RationalFunction a = Ratio (Polynomial p => p a)
 
 degree :: Polynomial p => p a -> Integer
 degree p = maximum $ map order $ terms p
@@ -153,8 +140,25 @@ instance (Num a, Polynomial (p PolynomialWitness)) => Enum (p PolynomialWitness 
     fromEnum = fromInteger . degree
 
 instance (Fractional a, Polynomial (p PolynomialWitness), Real (p PolynomialWitness a), Enum (p PolynomialWitness a)) => Integral (p PolynomialWitness a) where
-    divMod = divPoly
-    quotRem = divPoly
+    divMod = divModPoly
+    quotRem = divModPoly
     toInteger = degree
 
+{-  To make polynomials an instance of Rational it is necessary to make them into
+    an instance of Integral. This involves a lot of boilerplate, but otherwise
+    it isn't too hard.
+
+    Note that for the Euclidean algorithm to be well defined on a domain R, all
+    that is necessary is that we have addition, subtraction and commutative
+    multiplication on R, as well as a we of assigning x in R to an integer m x
+    such that m (x * y) >= m x for all nonzero x and y. For integers we have
+    m = abs, and for polynomials we have m = degree.
+
+    We can now write e.g.
+
+        r = p % q
+
+    for two polynomials p and q, and be sure that arithmetic operations will
+    be performed correctly, and the reduction to lowest terms will be carried
+    out correctly. -}
 
