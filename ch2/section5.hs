@@ -25,55 +25,35 @@ instance Num a => Num (Term a) where
     signum (Term n x) = Term n (signum x)
     abs (Term n x) = Term n (abs x)
 
+data PolynomialWitness -- necessary to differentiate between Term and Polynomial
+
 class Polynomial p where
     variable :: p a -> Char
     terms :: p a -> [Term a]
     makePoly :: Num a => Char -> [Term a] -> p a
 
-data SparsePoly a = SP Char [Term a] deriving (Eq,Show)
+data SparsePoly w a = SP Char [Term a] deriving (Eq,Show)
 
-instance Polynomial SparsePoly where
+instance Polynomial (SparsePoly PolynomialWitness) where
     variable (SP x _) = x
     terms (SP _ t) = t
     makePoly x t = SP x t
 
 -- 2.88
-instance (Num a) => Num (SparsePoly a) where
-    (+) = addPoly
-    (*) = mulPoly
-    negate = negPoly
-    fromInteger = fromIntegerPoly
+instance (Polynomial (p PolynomialWitness), Num a, Show (p PolynomialWitness a), Eq (p PolynomialWitness a)) => Num (p PolynomialWitness a) where
+    p + q = addPoly p q
+    p * q = mulPoly p q
+    negate p = makePoly (variable p) (map negate (terms p))
     abs = undefined
     signum = undefined
-
-{-  I'd actually like to be able to do something like this, which would
-    automatically make all instances of Polynomial into an instance of Num:
-
-    instance (Polynomial p, Num a, Show (p a), Eq (p a)) => Num (p a) where
-        p + q = addPoly p q
-        p * q = mulPoly p q
-        negate p = makePoly (variable p) (map negate (terms p))
-        abs = undefined
-        signum = undefined
-        fromInteger n = makePoly 'x' [Term 0 (fromInteger n)]
-
-    However, it doesn't seem to be possible if I alse want to have multiple
-    implementations of Term via a class
-
-    class Term t where ...
-
-    instance (Term t, Num a, Show (t a), Eq (t a)) => Num (t a) where ...
-
-    because there's nothing to stop someone from making a data type into an
-    instance of both Polynomial and Term, which would make the dispatch
-    indeterminate. -}
+    fromInteger n = makePoly 'x' [Term 0 (fromInteger n)]
 
 addTerms :: Num a => [Term a] -> [Term a] -> [Term a]
 addTerms xs [] = xs
 addTerms [] ys = ys
 addTerms (x:xs) (y:ys)
-    | order x < order y = x : addTerms xs (y:ys)
-    | order x > order y = y : addTerms (x:xs) ys
+    | order x > order y = x : addTerms xs (y:ys)
+    | order x < order y = y : addTerms (x:xs) ys
     | otherwise         = let z = x + y
         in if coef z == 0 then addTerms xs ys
                           else z : addTerms xs ys
@@ -100,9 +80,9 @@ fromIntegerPoly :: (Polynomial p, Num a) => Integer -> p a
 fromIntegerPoly n = makePoly 'x' [Term 0 (fromInteger n)]
 
 -- 2.89
-data DensePoly a = DP Char [a] deriving (Eq,Show)
+data DensePoly w a = DP Char [a] deriving (Eq,Show)
 
-instance Polynomial DensePoly where
+instance Polynomial (DensePoly PolynomialWitness) where
     variable (DP x _) = x
     terms (DP _ t) = reverse $ map (\(x,i) -> Term i x) (zip (reverse t) [0..])
     makePoly x [] = DP x []
@@ -114,13 +94,13 @@ instance Polynomial DensePoly where
                 then (coef t) : makeTerms ts ns
                 else (fromInteger 0) : makeTerms (t:ts) ns
 
-instance Num a => Num (DensePoly a) where
-    (+) = addPoly
-    (*) = mulPoly
-    negate = negPoly
-    fromInteger = fromIntegerPoly
-    abs = undefined
-    signum = undefined
+--instance Num a => Num (DensePoly a) where
+--    (+) = addPoly
+--    (*) = mulPoly
+--    negate = negPoly
+--    fromInteger = fromIntegerPoly
+--    abs = undefined
+--    signum = undefined
 
 -- 2.90
 -- Probably needs to go in a separate file?
