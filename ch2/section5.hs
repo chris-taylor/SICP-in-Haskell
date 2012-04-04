@@ -38,23 +38,35 @@ instance Polynomial SparsePoly where
     makePoly x t = SP x t
 
 -- 2.88
-instance (Polynomial p, Num a, Show (p a), Eq (p a)) => Num (p a) where
-    p + q = addPoly p q
-    p * q = mulPoly p q
-    negate p = makePoly (variable p) (map negate (terms p))
+instance (Num a) => Num (SparsePoly a) where
+    (+) = addPoly
+    (*) = mulPoly
+    negate = negPoly
+    fromInteger = fromIntegerPoly
     abs = undefined
     signum = undefined
-    fromInteger n = makePoly 'x' [Term 0 (fromInteger n)]
 
-addPoly :: (Polynomial p, Num a) => p a -> p a -> p a
-addPoly p q = if variable p == variable q
-    then makePoly (variable p) (addTerms (terms p) (terms q))
-    else error "Polynomials not in the same variable -- ADDPOLY"
+{-  I'd actually like to be able to do something like this, which would
+    automatically make all instances of Polynomial into an instance of Num:
 
-mulPoly :: (Polynomial p, Num a) => p a -> p a -> p a
-mulPoly p q = if variable p == variable q
-    then makePoly (variable p) (mulTerms (terms p) (terms q))
-    else error "Polynomials not in the same variable -- MULPOLY"
+    instance (Polynomial p, Num a, Show (p a), Eq (p a)) => Num (p a) where
+        p + q = addPoly p q
+        p * q = mulPoly p q
+        negate p = makePoly (variable p) (map negate (terms p))
+        abs = undefined
+        signum = undefined
+        fromInteger n = makePoly 'x' [Term 0 (fromInteger n)]
+
+    However, it doesn't seem to be possible if I alse want to have multiple
+    implementations of Term via a class
+
+    class Term t where ...
+
+    instance (Term t, Num a, Show (t a), Eq (t a)) => Num (t a) where ...
+
+    because there's nothing to stop someone from making a data type into an
+    instance of both Polynomial and Term, which would make the dispatch
+    indeterminate. -}
 
 addTerms :: Num a => [Term a] -> [Term a] -> [Term a]
 addTerms xs [] = xs
@@ -66,24 +78,71 @@ addTerms (x:xs) (y:ys)
         in if coef z == 0 then addTerms xs ys
                           else z : addTerms xs ys
 
-mulTerms :: Num a => [Term a] -> [Term a] -> [Term a]
-mulTerms []     ys = []
-mulTerms (x:xs) ys = addTerms (mulTermByAllTerms x ys) (mulTerms xs ys)
+addPoly :: (Polynomial p, Num a) => p a -> p a -> p a
+addPoly p q = if variable p == variable q
+    then makePoly (variable p) (addTerms (terms p) (terms q))
+    else error "Polynomials not in the same variable -- ADDPOLY"
 
-mulTermByAllTerms :: Num a => Term a -> [Term a] -> [Term a]    
-mulTermByAllTerms x []     = []
-mulTermByAllTerms x (y:ys) = (x * y) : mulTermByAllTerms x ys
+mulPoly :: (Polynomial p, Num a) => p a -> p a -> p a
+mulPoly p q = if variable p == variable q
+    then makePoly (variable p) (mulTerms (terms p) (terms q))
+    else error "Polynomials not in the same variable -- MULPOLY"
+    where
+        mulTerms []     ys = []
+        mulTerms (x:xs) ys = addTerms (mulTermByAllTerms x ys) (mulTerms xs ys)
+        mulTermByAllTerms x []     = []
+        mulTermByAllTerms x (y:ys) = (x * y) : mulTermByAllTerms x ys
+
+negPoly :: (Polynomial p, Num a) => p a -> p a
+negPoly p = makePoly (variable p) (map negate (terms p))
+
+fromIntegerPoly :: (Polynomial p, Num a) => Integer -> p a
+fromIntegerPoly n = makePoly 'x' [Term 0 (fromInteger n)]
 
 -- 2.89
 data DensePoly a = DP Char [a] deriving (Eq,Show)
 
 instance Polynomial DensePoly where
     variable (DP x _) = x
-    terms (DP _ t) = map (\(x,n) -> Term n x) (zip t [0..])
-    makePoly x t = DP x (makeTerms t [0..])
+    terms (DP _ t) = reverse $ map (\(x,i) -> Term i x) (zip (reverse t) [0..])
+    makePoly x [] = DP x []
+    makePoly x t  = DP x (makeTerms t [n,n-1..0])
         where
-            makeTerms []     _      = []
+            n = maximum (map order t)
+            makeTerms []      ns    = replicate (length ns) 0
             makeTerms (t:ts) (n:ns) = if order t == n
                 then (coef t) : makeTerms ts ns
                 else (fromInteger 0) : makeTerms (t:ts) ns
 
+instance Num a => Num (DensePoly a) where
+    (+) = addPoly
+    (*) = mulPoly
+    negate = negPoly
+    fromInteger = fromIntegerPoly
+    abs = undefined
+    signum = undefined
+
+-- 2.90
+-- Probably needs to go in a separate file?
+
+-- 2.91
+divPoly :: (Polynomial p, Fractional a) => p a -> p a -> (p a, p a)
+divPoly p q = if variable p == variable q
+    then (makePoly (variable p) result, makePoly (variable p) remainder)
+    else error "Polynomials not in the same variable -- DIVPOLY"
+    where
+        (result,remainder) = divTerms (terms p) (terms q)
+
+divTerms :: Fractional a => [Term a] -> [Term a] -> ([Term a], [Term a])
+divTerms []      ys    = ([], [])
+divTerms (x:xs) (y:ys) = if order x < order y
+    then ([], x:xs)
+    else let newCoef = coef x / coef y
+             newOrder = order x - order y
+             firstTerm = Term newOrder newCoef
+             rm = map (* negate firstTerm) ys
+             (restOfResult, remainder) = divTerms (addTerms rm xs) (y:ys)
+          in (firstTerm:restOfResult, remainder)
+
+-- 2.92
+-- To do.
