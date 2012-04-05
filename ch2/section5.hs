@@ -46,12 +46,12 @@ instance Polynomial (SparsePoly PolynomialWitness) where
 reduce :: (Polynomial p, Num a) => p a -> p a
 reduce p = makePoly (variable p) (filter (\t -> coef t /= 0) (terms p))
 
-instance (Polynomial (p PolynomialWitness), Num a, Show (p PolynomialWitness a), Eq (p PolynomialWitness a)) => Num (p PolynomialWitness a) where
-    p + q = addPoly p q
-    p * q = mulPoly p q
-    negate p = makePoly (variable p) (map negate (terms p))
-    abs p = p
-    signum p = makePoly (variable p) [Term 0 1]
+instance (Polynomial (p PolynomialWitness), Num a, Ord a, Show (p PolynomialWitness a), Eq (p PolynomialWitness a)) => Num (p PolynomialWitness a) where
+    (+) = addPoly
+    (*) = mulPoly
+    negate = negPoly
+    abs = absPoly
+    signum = signumPoly
     fromInteger n = makePoly 'x' [Term 0 (fromInteger n)]
 
 addTerms :: Num a => [Term a] -> [Term a] -> [Term a]
@@ -79,6 +79,14 @@ mulPoly p q = if variable p == variable q
 
 negPoly :: (Polynomial p, Num a) => p a -> p a
 negPoly p = makePoly (variable p) (map negate (terms p))
+
+absPoly :: (Polynomial p, Num a, Ord a) => p a -> p a
+absPoly p = if (coef . head . terms $ p) < 0
+    then negPoly p
+    else p
+
+signumPoly :: (Polynomial p, Num a) => p a -> p a
+signumPoly p = makePoly (variable p) [Term 0 (signum . coef . head . terms $ p)]
 
 fromIntegerPoly :: (Polynomial p, Num a) => Integer -> p a
 fromIntegerPoly n = makePoly 'x' [Term 0 (fromInteger n)]
