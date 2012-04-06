@@ -19,7 +19,6 @@ deposit' amount = state makedeposit where
 
 -- Thanks to Daniel Wagner on StackOverflow for explaining the ST monad
 -- http://stackoverflow.com/questions/10048213/managing-state-chapter-3-of-sicp/10048527#10048527
-
 makeWithdraw :: Cash -> ST s (Cash -> ST s (Either String Cash))
 makeWithdraw initialBalance = do
     refBalance <- newSTRef initialBalance
@@ -32,8 +31,6 @@ makeWithdraw initialBalance = do
                 writeSTRef refBalance newBalance
                 return (Right $ newBalance)
 
--- Can test makeWithdraw by running this code:
-
 testMakeWithdraw :: [Either String Cash]
 testMakeWithdraw = runST $ do
     w1 <- makeWithdraw 100
@@ -45,7 +42,6 @@ testMakeWithdraw = runST $ do
     return [x1,y1,x2,y2]
 
 -- Modelling accounts
-
 makeAccount :: Cash -> ST s ((Cash -> (a, Cash)) -> ST s a)
 makeAccount initialBalance = do
     refBalance <- newSTRef initialBalance
@@ -65,10 +61,24 @@ deposit :: Cash -> Cash -> (Either String Cash, Cash)
 deposit amount balance = (Right newBalance, newBalance) where
     newBalance = balance + amount
 
--- Can test makeAccount with this code:
-
 testMakeAccount :: [Either String Cash]
 testMakeAccount = runST $ do
     acc <- makeAccount 100
     mapM acc [ withdraw 50, withdraw 60, deposit 40, withdraw 60 ]
+
+-- 3.1
+makeAccumulator :: Num a => a -> ST s (a -> ST s a)
+makeAccumulator initialValue = do
+    refValue <- newSTRef initialValue
+    return $ \x -> do
+        value <- readSTRef refValue
+        let newValue = value + x
+        writeSTRef refValue newValue
+        return newValue
+
+testMakeAccumulator :: Num a => a -> [a] -> [a]
+testMakeAccumulator initialValue values = runST $ do
+    acc <- makeAccumulator initialValue
+    mapM acc values
+
 
