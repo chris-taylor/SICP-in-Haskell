@@ -99,3 +99,21 @@ testMakeMonitored f inputs = runST $ do
     g <- makeMonitored f
     mapM g inputs
 
+-- 3.3
+makeAccount' :: Cash -> String -> ST s ((String, Cash -> (a, Cash)) -> ST s (Either String a))
+makeAccount' initialBalance password = do
+    refBalance <- newSTRef initialBalance
+    return $ \(pass,f) -> if pass /= password
+        then return (Left "Incorrect Password")
+        else do
+            balance <- readSTRef refBalance
+            let (result, newBalance) = f balance
+            writeSTRef refBalance newBalance
+            return (Right result)
+
+testMakeAccount' :: [Either String (Either String Cash)]
+testMakeAccount' = runST $ do
+    acc <- makeAccount' 100 "eggs"
+    mapM acc [ ("eggs", withdraw 50), ("spam", withdraw 100), ("eggs", withdraw 100) ]
+
+
