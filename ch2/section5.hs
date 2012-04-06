@@ -131,7 +131,7 @@ divModTerms (x:xs) (y:ys) = if order x < order y
 -- 2.92
 -- To do.
 
--- 2.93
+-- 2.93 && 2.94
 type RationalFunction a = Ratio (Polynomial p => p a)
 
 degree :: Polynomial p => p a -> Integer
@@ -170,3 +170,4 @@ instance (Fractional a, Polynomial (p PolynomialWitness), Real (p PolynomialWitn
     be performed correctly, and the reduction to lowest terms will be carried
     out correctly. -}
 
+-- 2.95 
