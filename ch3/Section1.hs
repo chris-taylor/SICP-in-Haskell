@@ -71,10 +71,9 @@ makeAccumulator :: Num a => a -> ST s (a -> ST s a)
 makeAccumulator initialValue = do
     refValue <- newSTRef initialValue
     return $ \x -> do
+        modifySTRef refValue (+x)
         value <- readSTRef refValue
-        let newValue = value + x
-        writeSTRef refValue newValue
-        return newValue
+        return value
 
 testMakeAccumulator :: Num a => a -> [a] -> [a]
 testMakeAccumulator initialValue values = runST $ do
