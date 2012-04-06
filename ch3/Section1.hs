@@ -80,4 +80,22 @@ testMakeAccumulator initialValue values = runST $ do
     acc <- makeAccumulator initialValue
     mapM acc values
 
+-- 3.2
+data MonitoredInput a = Input a | HowManyCalls
+
+makeMonitored :: (a -> b) -> ST s (MonitoredInput a -> ST s (Either Integer b))
+makeMonitored f = do
+    refCount <- newSTRef 0
+    return $ \x -> case x of
+        Input x -> do
+            modifySTRef refCount (+1)
+            return (Right $ f x)
+        HowManyCalls -> do
+            count <- readSTRef refCount
+            return (Left count)
+
+testMakeMonitored :: (a -> b) -> [MonitoredInput a] -> [Either Integer b]
+testMakeMonitored f inputs = runST $ do
+    g <- makeMonitored f
+    mapM g inputs
 
