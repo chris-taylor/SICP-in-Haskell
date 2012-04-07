@@ -104,7 +104,7 @@ makeAccount' :: Cash -> String -> ST s ((String, Cash -> (a, Cash)) -> ST s (Eit
 makeAccount' initialBalance password = do
     refBalance <- newSTRef initialBalance
     return $ \(pass,f) -> if pass /= password
-        then return (Left "Incorrect Password")
+        then return (Left $ "Incorrect Password: " ++ pass)
         else do
             balance <- readSTRef refBalance
             let (result, newBalance) = f balance
@@ -116,4 +116,30 @@ testMakeAccount' = runST $ do
     acc <- makeAccount' 100 "eggs"
     mapM acc [ ("eggs", withdraw 50), ("spam", withdraw 100), ("eggs", withdraw 100) ]
 
+
+-- 3.4
+makeAccount'' :: Cash -> String -> ST s ((String, Cash -> (a, Cash)) -> ST s (Either String a))
+makeAccount'' initialBalance password = do
+    refBalance <- newSTRef initialBalance
+    refCounter <- newSTRef 0
+    return $ \(pass,f) -> if pass /= password
+        then do
+            modifySTRef refCounter (+1)
+            count <- readSTRef refCounter
+            if count < 7
+                then return (Left $ "Incorrect Password: " ++ pass)
+                else return (Left "Calling The Cops")
+        else do
+            balance <- readSTRef refBalance
+            let (result, newBalance) = f balance
+            writeSTRef refCounter 0
+            writeSTRef refBalance newBalance
+            return (Right result)
+
+testMakeAccount'' :: [Either String (Either String Cash)]
+testMakeAccount'' = runST $ do
+    acc <- makeAccount'' 100 "eggs"
+    mapM acc [ ("spam",withdraw 100), ("ham", withdraw 100), 
+        ("spinach", withdraw 100), ("muffin", withdraw 100),
+        ("beans", withdraw 100), ("beer", withdraw 100), ("beef", withdraw 100) ]
 
