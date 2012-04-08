@@ -45,7 +45,9 @@ testMakeWithdraw = runST $ do
 
 -- Modelling accounts
 
-makeAccount :: Cash -> ST s ((Cash -> (a, Cash)) -> ST s a)
+type Action a = Cash -> (a, Cash)
+
+makeAccount :: Cash -> ST s (Action a -> ST s a)
 makeAccount initialBalance = do
     refBalance <- newSTRef initialBalance
     return $ \f -> do
@@ -54,13 +56,13 @@ makeAccount initialBalance = do
         writeSTRef refBalance newBalance
         return result
 
-withdraw :: Cash -> Cash -> (Either String Cash, Cash)
+withdraw :: Cash -> Action (Either String Cash)
 withdraw amount balance = if amount > balance
     then (Left "Insufficient funds", balance)
     else (Right newBalance, newBalance) where
         newBalance = balance - amount
 
-deposit :: Cash -> Cash -> (Either String Cash, Cash)
+deposit :: Cash -> Action (Either String Cash)
 deposit amount balance = (Right newBalance, newBalance) where
     newBalance = balance + amount
 
@@ -103,8 +105,11 @@ testMakeMonitored f inputs = runST $ do
     mapM g inputs
 
 -- 3.3
-makeAccount' :: Cash -> String -> ST s ((String, Cash -> (a, Cash)) -> ST s (Either String a))
-makeAccount' initialBalance password = do
+type Password = String
+type SecureAccount s a = (Password, Action a) -> ST s (Either String a)
+
+makeSecureAccount :: Cash -> Password -> ST s (SecureAccount s a)
+makeSecureAccount initialBalance password = do
     refBalance <- newSTRef initialBalance
     return $ \(pass,f) -> if pass /= password
         then return (Left $ "Incorrect Password: " ++ pass)
@@ -114,15 +119,15 @@ makeAccount' initialBalance password = do
             writeSTRef refBalance newBalance
             return (Right result)
 
-testMakeAccount' :: [Either String (Either String Cash)]
-testMakeAccount' = runST $ do
-    acc <- makeAccount' 100 "eggs"
+testMakeSecureAccount :: [Either String (Either String Cash)]
+testMakeSecureAccount = runST $ do
+    acc <- makeSecureAccount 100 "eggs"
     mapM acc [ ("eggs", withdraw 50), ("spam", withdraw 100), ("eggs", withdraw 100) ]
 
 
 -- 3.4
-makeAccount'' :: Cash -> String -> ST s ((String, Cash -> (a, Cash)) -> ST s (Either String a))
-makeAccount'' initialBalance password = do
+makeSecureAccount' :: Cash -> Password -> ST s (SecureAccount s a)
+makeSecureAccount' initialBalance password = do
     refBalance <- newSTRef initialBalance
     refCounter <- newSTRef 0
     return $ \(pass,f) -> if pass /= password
@@ -139,9 +144,9 @@ makeAccount'' initialBalance password = do
             writeSTRef refBalance newBalance
             return (Right result)
 
-testMakeAccount'' :: [Either String (Either String Cash)]
-testMakeAccount'' = runST $ do
-    acc <- makeAccount'' 100 "eggs"
+testMakeSecureAccount' :: [Either String (Either String Cash)]
+testMakeSecureAccount' = runST $ do
+    acc <- makeSecureAccount 100 "eggs"
     mapM acc [ ("spam",withdraw 100), ("ham", withdraw 100), 
         ("spinach", withdraw 100), ("muffin", withdraw 100),
         ("beans", withdraw 100), ("beer", withdraw 100), ("beef", withdraw 100) ]
@@ -217,3 +222,22 @@ testRandReset = runST $ do
     y' <- rand Generate
     return [x,y,x',y']
 
+-- 3.7
+makeJoint :: (SecureAccount s (Either String Cash)) -> Password -> Password -> ST s (SecureAccount s (Either String Cash))
+makeJoint acct oldPass newPass = do
+        result <- acct (oldPass, testfun)
+        case result of
+            (Left _)  -> error "Passwords do not match."
+            (Right _) -> return $ \(pass,f) -> if pass /= newPass
+                then return (Left "Incorrect password")
+                else acct (oldPass,f)
+        where testfun bal = (Right bal,bal)
+
+testMakeJoint :: [Either String (Either String Cash)]
+testMakeJoint = runST $ do
+    peter <- makeSecureAccount 100 "eggs"
+    paul  <- makeJoint peter "eggs" "spam"
+    x <- peter ("eggs", withdraw 50)
+    y <- paul  ("spam", withdraw 50)
+    z <- peter ("eggs", withdraw 50)
+    return [x,y,z]
