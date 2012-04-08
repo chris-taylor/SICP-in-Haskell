@@ -154,7 +154,7 @@ makeRand initialSeed = do
     return $ \_ -> do
         gen <- readSTRef genRef
         let (result, newGen) = random gen
-        writeSTRef genRef gen
+        writeSTRef genRef newGen
         return result
 
 estimatePi :: Integer -> IO Double
@@ -186,6 +186,34 @@ estimateIntegral p x1 x2 y1 y2 trials = monteCarlo trials experiment where
         y <- randomRIO (y1,y2)
         return (p x y)
 
+estimatePi' :: Integer -> IO Double
 estimatePi' trials = do
     result <- estimateIntegral (\x y -> x^2 + y^2 < 1) (-1) 1 (-1) 1 trials
     return (4 * result)
+
+-- 3.6
+data RandArg = Generate | Reset Int
+
+makeRandReset :: (Random b, Num b) => Int -> ST s (RandArg -> ST s b)
+makeRandReset initialSeed = do
+    genRef <- newSTRef (mkStdGen initialSeed)
+    return $ \arg -> case arg of
+        Generate -> do
+            gen <- readSTRef genRef
+            let (result, newGen) = random gen
+            writeSTRef genRef newGen
+            return result
+        Reset seed -> do
+            writeSTRef genRef (mkStdGen seed)
+            return 0
+
+testRandReset :: [Int]
+testRandReset = runST $ do
+    rand <- makeRandReset 0 :: ST s (RandArg -> ST s Int)
+    x <- rand Generate
+    y <- rand Generate
+    rand (Reset 0)
+    x' <- rand Generate
+    y' <- rand Generate
+    return [x,y,x',y']
+
