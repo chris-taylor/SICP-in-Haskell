@@ -241,3 +241,27 @@ testMakeJoint = runST $ do
     y <- paul  ("spam", withdraw 50)
     z <- peter ("eggs", withdraw 50)
     return [x,y,z]
+
+-- 3.8
+makeF :: ST s (Integer -> ST s Integer)
+makeF = do
+    x <- newSTRef 0
+    return $ \y -> do
+        result <- readSTRef x
+        if y == 1 then (writeSTRef x 1) else return ()
+        return result
+
+testLeftToRight :: Integer
+testLeftToRight = runST $ do
+    f <- makeF
+    a <- f 0
+    b <- f 1
+    return (a + b)
+
+testRightToLeft :: Integer
+testRightToLeft = runST $ do
+    f <- makeF
+    b <- f 1
+    a <- f 0
+    return (a + b)
+
