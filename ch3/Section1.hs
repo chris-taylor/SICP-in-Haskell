@@ -3,6 +3,7 @@
 import Control.Monad.State
 import Control.Monad.ST
 import Data.STRef
+import System.Random
 
 type Cash = Float
 type Account = State Cash
@@ -19,6 +20,7 @@ deposit' amount = state makedeposit where
 
 -- Thanks to Daniel Wagner on StackOverflow for explaining the ST monad
 -- http://stackoverflow.com/questions/10048213/managing-state-chapter-3-of-sicp/10048527#10048527
+
 makeWithdraw :: Cash -> ST s (Cash -> ST s (Either String Cash))
 makeWithdraw initialBalance = do
     refBalance <- newSTRef initialBalance
@@ -42,6 +44,7 @@ testMakeWithdraw = runST $ do
     return [x1,y1,x2,y2]
 
 -- Modelling accounts
+
 makeAccount :: Cash -> ST s ((Cash -> (a, Cash)) -> ST s a)
 makeAccount initialBalance = do
     refBalance <- newSTRef initialBalance
@@ -143,3 +146,46 @@ testMakeAccount'' = runST $ do
         ("spinach", withdraw 100), ("muffin", withdraw 100),
         ("beans", withdraw 100), ("beer", withdraw 100), ("beef", withdraw 100) ]
 
+-- Random numbers
+
+makeRand :: Random a => Int -> ST s (t -> ST s a)
+makeRand initialSeed = do
+    genRef <- newSTRef (mkStdGen initialSeed)
+    return $ \_ -> do
+        gen <- readSTRef genRef
+        let (result, newGen) = random gen
+        writeSTRef genRef gen
+        return result
+
+estimatePi :: Integer -> IO Double
+estimatePi trials = do
+    result <- monteCarlo trials cesaroTest
+    return $ sqrt $ 6 / result
+
+cesaroTest :: IO Bool
+cesaroTest = do
+    n <- randomIO :: IO Int
+    m <- randomIO :: IO Int
+    return (gcd n m == 1)
+
+monteCarlo :: (Monad m, Fractional a) => Integer -> m Bool -> m a
+monteCarlo trials experiment = iter trials 0 where
+    iter remaining passed = if remaining == 0
+        then return (fromInteger passed / fromInteger trials)
+        else do 
+            result <- experiment
+            if result
+                then iter (remaining - 1) (passed + 1)
+                else iter (remaining - 1) passed
+
+-- 3.5
+estimateIntegral :: (Random a, Fractional a) => (a -> a -> Bool) -> a -> a -> a -> a -> Integer -> IO a
+estimateIntegral p x1 x2 y1 y2 trials = monteCarlo trials experiment where
+    experiment = do
+        x <- randomRIO (x1,x2)
+        y <- randomRIO (y1,y2)
+        return (p x y)
+
+estimatePi' trials = do
+    result <- estimateIntegral (\x y -> x^2 + y^2 < 1) (-1) 1 (-1) 1 trials
+    return (4 * result)
