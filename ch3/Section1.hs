@@ -2,6 +2,7 @@
 
 import Control.Monad.State
 import Control.Monad.ST
+import Control.Applicative
 import Data.STRef
 import System.Random
 
@@ -46,6 +47,7 @@ testMakeWithdraw = runST $ do
 -- Modelling accounts
 
 type Action a = Cash -> (a, Cash)
+type AccountOutput = Either String Cash
 
 makeAccount :: Cash -> ST s (Action a -> ST s a)
 makeAccount initialBalance = do
@@ -56,17 +58,17 @@ makeAccount initialBalance = do
         writeSTRef refBalance newBalance
         return result
 
-withdraw :: Cash -> Action (Either String Cash)
+withdraw :: Cash -> Action AccountOutput
 withdraw amount balance = if amount > balance
     then (Left "Insufficient funds", balance)
     else (Right newBalance, newBalance) where
         newBalance = balance - amount
 
-deposit :: Cash -> Action (Either String Cash)
+deposit :: Cash -> Action AccountOutput
 deposit amount balance = (Right newBalance, newBalance) where
     newBalance = balance + amount
 
-testMakeAccount :: [Either String Cash]
+testMakeAccount :: [AccountOutput]
 testMakeAccount = runST $ do
     acc <- makeAccount 100
     mapM acc [ withdraw 50, withdraw 60, deposit 40, withdraw 60 ]
@@ -119,7 +121,7 @@ makeSecureAccount initialBalance password = do
             writeSTRef refBalance newBalance
             return (Right result)
 
-testMakeSecureAccount :: [Either String (Either String Cash)]
+testMakeSecureAccount :: [Either String AccountOutput]
 testMakeSecureAccount = runST $ do
     acc <- makeSecureAccount 100 "eggs"
     mapM acc [ ("eggs", withdraw 50), ("spam", withdraw 100), ("eggs", withdraw 100) ]
@@ -144,7 +146,7 @@ makeSecureAccount' initialBalance password = do
             writeSTRef refBalance newBalance
             return (Right result)
 
-testMakeSecureAccount' :: [Either String (Either String Cash)]
+testMakeSecureAccount' :: [Either String AccountOutput]
 testMakeSecureAccount' = runST $ do
     acc <- makeSecureAccount 100 "eggs"
     mapM acc [ ("spam",withdraw 100), ("ham", withdraw 100), 
@@ -186,10 +188,7 @@ monteCarlo trials experiment = iter trials 0 where
 -- 3.5
 estimateIntegral :: (Random a, Fractional a) => (a -> a -> Bool) -> a -> a -> a -> a -> Integer -> IO a
 estimateIntegral p x1 x2 y1 y2 trials = monteCarlo trials experiment where
-    experiment = do
-        x <- randomRIO (x1,x2)
-        y <- randomRIO (y1,y2)
-        return (p x y)
+    experiment = p <$> randomRIO (x1,x2) <*> randomRIO (y1,y2)
 
 estimatePi' :: Integer -> IO Double
 estimatePi' trials = do
@@ -223,7 +222,7 @@ testRandReset = runST $ do
     return [x,y,x',y']
 
 -- 3.7
-makeJoint :: (SecureAccount s (Either String Cash)) -> Password -> Password -> ST s (SecureAccount s (Either String Cash))
+makeJoint :: (SecureAccount s AccountOutput) -> Password -> Password -> ST s (SecureAccount s AccountOutput)
 makeJoint acct oldPass newPass = do
         result <- acct (oldPass, testfun)
         case result of
@@ -233,7 +232,7 @@ makeJoint acct oldPass newPass = do
                 else acct (oldPass,f)
         where testfun bal = (Right bal,bal)
 
-testMakeJoint :: [Either String (Either String Cash)]
+testMakeJoint :: [Either String AccountOutput]
 testMakeJoint = runST $ do
     peter <- makeSecureAccount 100 "eggs"
     paul  <- makeJoint peter "eggs" "spam"
