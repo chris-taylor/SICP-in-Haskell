@@ -1,35 +1,83 @@
-{-# LANGUAGE ExistentialQuantification #-}
-
--- Modeling with Mutable Data
+-- 3.3 Modeling with Mutable Data
 
 import Control.Monad.ST (runST, ST)
 import Control.Monad (liftM)
 import Data.STRef
-import Data.IORef
 
--- Haskell doesn't have a built-in immutable list type, unlike Scheme, so
--- we'll have to create one. This mutable list is backed by a regular
--- linked list full of STRefs.
+-- Haskell doesn't have a built-in mutable list type, unlike Scheme, so
+-- we'll have to create one. This mutable list is a linked list full of STRefs.
 
-data MutableList s a = MutableList [STRef s a]
+data List s a = Nil | Cons (STRef s a) (STRef s (List s a))
 
-fromList :: [a] -> ST s (MutableList s a)
-fromList xs = liftM MutableList (mapM newSTRef xs)
+get :: STRef s a -> ST s a
+get = readSTRef
 
-toList :: MutableList s a -> ST s [a]
-toList (MutableList xs) = mapM readSTRef xs
+set :: STRef s a -> a -> ST s ()
+set = writeSTRef
 
-setCar :: MutableList s a -> a -> ST s (MutableList s a)
-setCar (MutableList (_:xs)) y = do
-    x <- newSTRef y
-    return (MutableList (x:xs))
+var :: a -> ST s (STRef s a)
+var = newSTRef
 
-setCdr :: MutableList s a -> MutableList s a -> ST s (MutableList s a)
-setCdr (MutableList (x:_)) (MutableList xs) = return (MutableList (x:xs))
+car :: List s a -> ST s a
+car Nil        = error "car of an empty list"
+car (Cons x _) = get x
 
-testMutableList = runST $ do
-    xs <- fromList [1,2,3]
-    ys <- setCar xs 4
-    zs <- fromList [5,6]
-    ws <- setCdr ys zs
-    toList ws
+cdr :: List s a -> ST s (List s a)
+cdr Nil        = error "cdr of an empty list"
+cdr (Cons _ x) = get x
+
+setCar :: List s a -> a -> ST s ()
+setCar lst a = case lst of
+    Nil      -> error "setCar of an empty list"
+    Cons x _ -> set x a
+
+setCdr :: List s a -> List s a -> ST s ()
+setCdr a lst = case lst of
+    Nil      -> error "setCdr of an empty list"
+    Cons _ x -> set x a
+
+fromList :: [a] -> ST s (List s a)
+fromList [] = return Nil
+fromList (x:xs) = do
+    y   <- var x
+    ys  <- fromList xs >>= var
+    return (Cons y ys)
+
+toList :: List s a -> ST s [a]
+toList Nil         = return []
+toList (Cons x xs) = do
+    y  <- get x
+    ys <- get xs >>= toList
+    return (y:ys)
+
+
+-- ex 3.12
+
+lastPair :: List s a -> ST s (List s a)
+lastPair x = do
+    x' <- cdr x
+    case x' of
+        Nil -> return x
+        _   -> lastPair x'
+
+append :: List s a -> List s a -> ST s (List s a)
+append x y = case x of
+    Nil       -> return y
+    Cons x xs -> do
+        xs' <- get xs
+        ys' <- append xs' y >>= var
+        return (Cons x ys')
+
+append' :: List s a -> List s a -> ST s (List s a)
+append' x y = lastPair x >>= setCdr y >> return x
+
+test = runST $ do
+    x <- fromList ['a','b']
+    y <- fromList ['c','d']
+    z <- append x y
+    toList z
+    cdr x >>= toList
+    w <- append' x y
+    toList w
+    cdr x >>= toList
+
